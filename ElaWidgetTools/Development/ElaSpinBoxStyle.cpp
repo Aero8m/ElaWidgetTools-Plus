@@ -111,9 +111,9 @@ void ElaSpinBoxStyle::drawComplexControl(ComplexControl control, const QStyleOpt
         iconFont.setPixelSize(eApp->getFontPixelSize() + 4);
         painter->setFont(iconFont);
         painter->setPen(isEnable ? ElaThemeColor(_themeMode, BasicText) : ElaThemeColor(_themeMode, BasicTextDisable));
-        painter->drawText(addLineRect, Qt::AlignCenter, _pButtonMode == ElaSpinBoxType::PMSide ? QChar(ElaIconType::Plus) : QChar(ElaIconType::AngleUp));
+        painter->drawText(addLineRect, Qt::AlignCenter, _pButtonMode == ElaSpinBoxType::PMSide ? QChar(static_cast<ushort>(ElaIconType::Plus)) : QChar(static_cast<ushort>(ElaIconType::AngleUp)));
         //减小图标
-        painter->drawText(subLineRect, Qt::AlignCenter, _pButtonMode == ElaSpinBoxType::PMSide ? QChar(ElaIconType::Minus) : QChar(ElaIconType::AngleDown));
+        painter->drawText(subLineRect, Qt::AlignCenter, _pButtonMode == ElaSpinBoxType::PMSide ? QChar(static_cast<ushort>(ElaIconType::Minus)) : QChar(static_cast<ushort>(ElaIconType::AngleDown)));
         painter->restore();
         return;
     }

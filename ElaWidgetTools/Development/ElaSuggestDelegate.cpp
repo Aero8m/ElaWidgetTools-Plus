@@ -69,7 +69,7 @@ void ElaSuggestDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
         QFont iconFont = QFont("ElaAwesome");
         iconFont.setPixelSize(eApp->getFontPixelSize() + 4);
         painter->setFont(iconFont);
-        painter->drawText(option.rect.x() + 11, option.rect.y() + 26, QChar(suggest->getElaIcon()));
+        painter->drawText(option.rect.x() + 11, option.rect.y() + 26, QChar(static_cast<ushort>(suggest->getElaIcon())));
     }
     painter->restore();
 }

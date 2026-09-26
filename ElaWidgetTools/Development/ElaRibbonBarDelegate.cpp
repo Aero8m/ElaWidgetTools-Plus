@@ -122,7 +122,7 @@ void ElaRibbonBarDelegate::paint(QPainter* painter, const QStyleOptionViewItem& 
             QFont iconFont = QFont("ElaAwesome");
             iconFont.setPixelSize(fontPixelSize + 4);
             painter->setFont(iconFont);
-            painter->drawText(itemRect.adjusted(0, 0, -6, 0), Qt::AlignVCenter | Qt::AlignRight, QChar(ElaIconType::AngleDown));
+            painter->drawText(itemRect.adjusted(0, 0, -6, 0), Qt::AlignVCenter | Qt::AlignRight, QChar(static_cast<ushort>(ElaIconType::AngleDown)));
             painter->restore();
         }
     }

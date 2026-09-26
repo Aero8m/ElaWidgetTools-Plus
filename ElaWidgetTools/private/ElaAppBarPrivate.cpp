@@ -291,10 +291,7 @@ QVBoxLayout* ElaAppBarPrivate::_createVLayout(QWidget* widget)
     QVBoxLayout* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
     vLayout->setSpacing(0);
-    if (widget == _iconLabel || widget == _titleLabel)
-    {
-        vLayout->addSpacing(6);
-    }
+    vLayout->addStretch();
     vLayout->addWidget(widget);
     vLayout->addStretch();
     return vLayout;

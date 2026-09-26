@@ -54,6 +54,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Ela::WidgetTools
 )
 
+if (WIN32)
+    add_custom_target(CopyElaWidgetToolsRuntime
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:ElaWidgetTools>"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+        DEPENDS ElaWidgetTools
+        COMMENT "Sync ElaWidgetTools DLL to the example directory"
+    )
+    add_dependencies(${PROJECT_NAME} CopyElaWidgetToolsRuntime)
+endif ()
+
 if (${QT_VERSION} VERSION_LESS 6.1.0)
     set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.${PROJECT_NAME})
 endif ()

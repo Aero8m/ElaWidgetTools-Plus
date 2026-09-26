@@ -12,9 +12,26 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QScreen>
+#include <QSizePolicy>
 #include <QTimer>
 #include <QVBoxLayout>
+
+namespace
+{
+constexpr int DialogShadowMargin = 12;
+constexpr int DialogCornerRadius = 8;
+constexpr int DialogFooterHeight = 80;
+
+void setDialogButtonText(ElaPushButton* button, const QString& text, int minimumWidth)
+{
+    button->setText(text);
+    // ElaPushButton reserves three pixels on each side for its shadow.
+    button->setMinimumWidth(qMax(minimumWidth, button->fontMetrics().horizontalAdvance(text) + 30));
+}
+}
+
 Q_TAKEOVER_NATIVEEVENT_CPP(ElaContentDialog, d_func()->_appBar);
 ElaContentDialog::ElaContentDialog(QWidget* parent)
     : QDialog{parent}, d_ptr(new ElaContentDialogPrivate())
@@ -27,7 +44,8 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
     d->_maskWidget->setFixedSize(parent->size());
     d->_maskWidget->setVisible(false);
 
-    resize(400, height());
+    setAttribute(Qt::WA_TranslucentBackground);
+    setWindowFlag(Qt::FramelessWindowHint);
     setWindowModality(Qt::ApplicationModal);
 
     d->_appBar = new ElaAppBar(this);
@@ -46,10 +64,11 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
             Q_EMIT leftButtonClicked();
         });
     });
-    d->_leftButton->setMinimumSize(0, 0);
-    d->_leftButton->setMaximumSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
+    d->_leftButton->setMinimumSize(84, 38);
+    d->_leftButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     d->_leftButton->setFixedHeight(38);
     d->_leftButton->setBorderRadius(6);
+    setDialogButtonText(d->_leftButton, d->_leftButton->text(), 84);
     d->_middleButton = new ElaPushButton("minimum", this);
     connect(d->_middleButton, &ElaPushButton::clicked, this, [=]() {
         onMiddleButtonClicked();
@@ -57,10 +76,11 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
             Q_EMIT middleButtonClicked();
         });
     });
-    d->_middleButton->setMinimumSize(0, 0);
-    d->_middleButton->setMaximumSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
+    d->_middleButton->setMinimumSize(94, 38);
+    d->_middleButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     d->_middleButton->setFixedHeight(38);
     d->_middleButton->setBorderRadius(6);
+    setDialogButtonText(d->_middleButton, d->_middleButton->text(), 94);
     d->_rightButton = new ElaPushButton("exit", this);
     connect(d->_rightButton, &ElaPushButton::clicked, this, [=]() {
         onRightButtonClicked();
@@ -77,37 +97,45 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
     d->_rightButton->setDarkHoverColor(ElaThemeColor(ElaThemeType::Dark, PrimaryHover));
     d->_rightButton->setDarkPressColor(ElaThemeColor(ElaThemeType::Dark, PrimaryPress));
     d->_rightButton->setDarkTextColor(Qt::black);
-    d->_rightButton->setMinimumSize(0, 0);
-    d->_rightButton->setMaximumSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
+    d->_rightButton->setMinimumSize(90, 38);
+    d->_rightButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     d->_rightButton->setFixedHeight(38);
     d->_rightButton->setBorderRadius(6);
+    setDialogButtonText(d->_rightButton, d->_rightButton->text(), 90);
 
     d->_centralWidget = new QWidget(this);
     QVBoxLayout* centralVLayout = new QVBoxLayout(d->_centralWidget);
-    centralVLayout->setContentsMargins(15, 25, 15, 10);
+    centralVLayout->setContentsMargins(30, 28, 30, 30);
     ElaText* title = new ElaText("退出", this);
-    title->setTextStyle(ElaTextType::Title);
+    title->setTextStyle(ElaTextType::Subtitle);
+    title->setMaximumWidth(460);
     ElaText* subTitle = new ElaText("确定要退出程序吗", this);
-    subTitle->setTextStyle(ElaTextType::Body);
+    subTitle->setTextPixelSize(15);
+    subTitle->setMaximumWidth(460);
     centralVLayout->addWidget(title);
-    centralVLayout->addSpacing(2);
+    centralVLayout->addSpacing(8);
     centralVLayout->addWidget(subTitle);
-    centralVLayout->addStretch();
 
     d->_mainLayout = new QVBoxLayout(this);
-    d->_mainLayout->setContentsMargins(0, 0, 0, 0);
+    d->_mainLayout->setContentsMargins(DialogShadowMargin, DialogShadowMargin, DialogShadowMargin, DialogShadowMargin);
+    d->_mainLayout->setSpacing(0);
+    d->_mainLayout->setSizeConstraint(QLayout::SetFixedSize);
     d->_buttonWidget = new QWidget(this);
-    d->_buttonWidget->setFixedHeight(60);
+    d->_buttonWidget->setFixedHeight(DialogFooterHeight);
     QHBoxLayout* buttonLayout = new QHBoxLayout(d->_buttonWidget);
-    buttonLayout->addWidget(d->_leftButton);
-    buttonLayout->addWidget(d->_middleButton);
+    buttonLayout->setContentsMargins(24, 0, 24, 0);
+    buttonLayout->setSpacing(4);
+    buttonLayout->addStretch();
     buttonLayout->addWidget(d->_rightButton);
+    buttonLayout->addWidget(d->_middleButton);
+    buttonLayout->addWidget(d->_leftButton);
     d->_mainLayout->addWidget(d->_centralWidget);
     d->_mainLayout->addWidget(d->_buttonWidget);
 
     d->_themeMode = eTheme->getThemeMode();
     connect(eTheme, &ElaTheme::themeModeChanged, this, [=](ElaThemeType::ThemeMode themeMode) {
         d->_themeMode = themeMode;
+        update();
     });
 }
 
@@ -132,30 +160,56 @@ void ElaContentDialog::onRightButtonClicked()
 void ElaContentDialog::setCentralWidget(QWidget* centralWidget)
 {
     Q_D(ElaContentDialog);
-    d->_mainLayout->takeAt(0);
-    d->_mainLayout->takeAt(0);
+    if (!centralWidget || centralWidget == d->_centralWidget)
+    {
+        return;
+    }
+    d->_mainLayout->removeWidget(d->_centralWidget);
     delete d->_centralWidget;
     d->_centralWidget = centralWidget;
-    d->_mainLayout->addWidget(centralWidget);
-    d->_mainLayout->addWidget(d->_buttonWidget);
+    d->_mainLayout->insertWidget(0, centralWidget);
+    d->_mainLayout->activate();
+    adjustSize();
+    if (isVisible())
+    {
+        d->_moveToCenter();
+    }
 }
 
 void ElaContentDialog::setLeftButtonText(const QString& text)
 {
     Q_D(ElaContentDialog);
-    d->_leftButton->setText(text);
+    setDialogButtonText(d->_leftButton, text, 84);
+    d->_mainLayout->activate();
+    adjustSize();
+    if (isVisible())
+    {
+        d->_moveToCenter();
+    }
 }
 
 void ElaContentDialog::setMiddleButtonText(const QString& text)
 {
     Q_D(ElaContentDialog);
-    d->_middleButton->setText(text);
+    setDialogButtonText(d->_middleButton, text, 94);
+    d->_mainLayout->activate();
+    adjustSize();
+    if (isVisible())
+    {
+        d->_moveToCenter();
+    }
 }
 
 void ElaContentDialog::setRightButtonText(const QString& text)
 {
     Q_D(ElaContentDialog);
-    d->_rightButton->setText(text);
+    setDialogButtonText(d->_rightButton, text, 90);
+    d->_mainLayout->activate();
+    adjustSize();
+    if (isVisible())
+    {
+        d->_moveToCenter();
+    }
 }
 
 void ElaContentDialog::close()
@@ -171,6 +225,8 @@ void ElaContentDialog::showEvent(QShowEvent* event)
     d->_maskWidget->raise();
     d->_maskWidget->setFixedSize(parentWidget()->size());
     d->_maskWidget->doMaskAnimation(90);
+    d->_mainLayout->activate();
+    adjustSize();
     d->_moveToCenter();
     QDialog::showEvent(event);
 }
@@ -181,13 +237,20 @@ void ElaContentDialog::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     painter.save();
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-    painter.setPen(Qt::NoPen);
+    const QRect cardRect = rect().adjusted(DialogShadowMargin, DialogShadowMargin, -DialogShadowMargin, -DialogShadowMargin);
+    eTheme->drawEffectShadow(&painter, rect(), DialogShadowMargin, DialogCornerRadius, 1.5);
+    QPainterPath cardPath;
+    cardPath.addRoundedRect(QRectF(cardRect), DialogCornerRadius, DialogCornerRadius);
+    painter.setPen(QPen(ElaThemeColor(d->_themeMode, PopupBorder), 1));
     painter.setBrush(ElaThemeColor(d->_themeMode, DialogBase));
-    // 背景绘制
-    painter.drawRect(rect());
-    // 按钮栏背景绘制
+    painter.drawPath(cardPath);
+    painter.setClipPath(cardPath);
+    painter.setPen(Qt::NoPen);
     painter.setBrush(ElaThemeColor(d->_themeMode, DialogLayoutArea));
-    painter.drawRoundedRect(QRectF(0, height() - 60, width(), 60), 8, 8);
+    const int footerTop = cardRect.bottom() - DialogFooterHeight + 1;
+    painter.drawRect(QRect(cardRect.left(), footerTop, cardRect.width(), DialogFooterHeight));
+    painter.setPen(QPen(ElaThemeColor(d->_themeMode, BasicBorder), 1));
+    painter.drawLine(cardRect.left(), footerTop, cardRect.right(), footerTop);
     painter.restore();
 }
 

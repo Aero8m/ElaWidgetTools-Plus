@@ -36,7 +36,7 @@ ElaAppBar::ElaAppBar(QWidget* parent)
     Q_D(ElaAppBar);
     d->_buttonFlags = ElaAppBarType::RouteBackButtonHint | ElaAppBarType::RouteForwardButtonHint | ElaAppBarType::StayTopButtonHint | ElaAppBarType::ThemeChangeButtonHint | ElaAppBarType::MinimizeButtonHint | ElaAppBarType::MaximizeButtonHint | ElaAppBarType::CloseButtonHint;
     window()->setAttribute(Qt::WA_Mapped);
-    d->_pAppBarHeight = 45;
+    d->_pAppBarHeight = 48;
     d->_pRibbonHeight = 0;
     setFixedHeight(d->_pAppBarHeight);
     window()->setContentsMargins(0, this->height(), 0, 0);
@@ -63,21 +63,24 @@ ElaAppBar::ElaAppBar(QWidget* parent)
     setStyleSheet("#ElaAppBar{background-color:transparent;}");
     d->_routeBackButton = new ElaToolButton(this);
     d->_routeBackButton->setElaIcon(ElaIconType::ArrowLeft);
-    d->_routeBackButton->setFixedSize(35, 30);
+    d->_routeBackButton->setIconSize(QSize(20, 20));
+    d->_routeBackButton->setFixedSize(40, 32);
     d->_routeBackButton->setEnabled(false);
     // 路由跳转
     connect(d->_routeBackButton, &ElaIconButton::clicked, this, &ElaAppBar::routeBackButtonClicked);
 
     d->_routeForwardButton = new ElaToolButton(this);
     d->_routeForwardButton->setElaIcon(ElaIconType::ArrowRight);
-    d->_routeForwardButton->setFixedSize(35, 30);
+    d->_routeForwardButton->setIconSize(QSize(20, 20));
+    d->_routeForwardButton->setFixedSize(40, 32);
     d->_routeForwardButton->setEnabled(false);
     connect(d->_routeForwardButton, &ElaToolButton::clicked, this, &ElaAppBar::routeForwardButtonClicked);
 
     // 导航栏展开按钮
     d->_navigationButton = new ElaToolButton(this);
     d->_navigationButton->setElaIcon(ElaIconType::Bars);
-    d->_navigationButton->setFixedSize(40, 30);
+    d->_navigationButton->setIconSize(QSize(20, 20));
+    d->_navigationButton->setFixedSize(40, 32);
     d->_navigationButton->setObjectName("NavigationButton");
     d->_navigationButton->setVisible(false);
     // 展开导航栏
@@ -86,7 +89,8 @@ ElaAppBar::ElaAppBar(QWidget* parent)
     // 设置置顶
     d->_stayTopButton = new ElaToolButton(this);
     d->_stayTopButton->setElaIcon(ElaIconType::Thumbtack, 45);
-    d->_stayTopButton->setFixedSize(40, 30);
+    d->_stayTopButton->setIconSize(QSize(18, 18));
+    d->_stayTopButton->setFixedSize(40, 32);
     connect(d->_stayTopButton, &ElaToolButton::clicked, this, [=]() {
         this->setIsStayTop(!this->getIsStayTop());
     });
@@ -133,7 +137,8 @@ ElaAppBar::ElaAppBar(QWidget* parent)
     // 主题变更
     d->_themeChangeButton = new ElaToolButton(this);
     d->_themeChangeButton->setElaIcon(ElaIconType::MoonStars);
-    d->_themeChangeButton->setFixedSize(40, 30);
+    d->_themeChangeButton->setIconSize(QSize(18, 18));
+    d->_themeChangeButton->setFixedSize(40, 32);
     connect(d->_themeChangeButton, &ElaToolButton::clicked, this, &ElaAppBar::themeChangeButtonClicked);
     connect(eTheme, &ElaTheme::themeModeChanged, this, [=](ElaThemeType::ThemeMode themeMode) {
         d->_onThemeModeChange(themeMode);
@@ -141,14 +146,17 @@ ElaAppBar::ElaAppBar(QWidget* parent)
 
     d->_minButton = new ElaToolButton(this);
     d->_minButton->setElaIcon(ElaIconType::Dash);
-    d->_minButton->setFixedSize(40, 30);
+    d->_minButton->setIconSize(QSize(16, 16));
+    d->_minButton->setBorderRadius(0);
+    d->_minButton->setFixedSize(46, d->_pAppBarHeight);
     connect(d->_minButton, &ElaToolButton::clicked, d, &ElaAppBarPrivate::onMinButtonClicked);
     d->_maxButton = new ElaToolButton(this);
-    d->_maxButton->setIconSize(QSize(18, 18));
+    d->_maxButton->setIconSize(QSize(16, 16));
     d->_maxButton->setElaIcon(ElaIconType::Square);
-    d->_maxButton->setFixedSize(40, 30);
+    d->_maxButton->setBorderRadius(0);
+    d->_maxButton->setFixedSize(46, d->_pAppBarHeight);
     connect(d->_maxButton, &ElaToolButton::clicked, d, &ElaAppBarPrivate::onMaxButtonClicked);
-    d->_closeButton = new ElaIconButton(ElaIconType::Xmark, 18, 40, 30, this);
+    d->_closeButton = new ElaIconButton(ElaIconType::Xmark, 16, 46, d->_pAppBarHeight, this);
     d->_closeButton->setLightHoverColor(QColor(0xE8, 0x11, 0x23));
     d->_closeButton->setDarkHoverColor(QColor(0xE8, 0x11, 0x23));
     d->_closeButton->setLightHoverIconColor(Qt::white);
@@ -240,6 +248,9 @@ void ElaAppBar::setAppBarHeight(int height)
     Q_D(ElaAppBar);
     d->_pAppBarHeight = height;
     setFixedHeight(d->_pAppBarHeight);
+    d->_minButton->setFixedHeight(height);
+    d->_maxButton->setFixedHeight(height);
+    d->_closeButton->setFixedHeight(height);
     window()->setContentsMargins(0, d->_pAppBarHeight + d->_pRibbonHeight, 0, 0);
     Q_EMIT pAppBarHeightChanged();
 }
