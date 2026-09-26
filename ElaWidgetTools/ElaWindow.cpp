@@ -50,6 +50,7 @@ ElaWindow::ElaWindow(QWidget* parent)
     connect(d->_appBar, &ElaAppBar::closeButtonClicked, this, &ElaWindow::closeButtonClicked);
     // 导航栏
     d->_navigationBar = new ElaNavigationBar(this);
+    d->_navigationBar->setUserInfoCardVisible(false);
     // 返回按钮状态变更
     connect(ElaActionCommander::getInstance(), &ElaActionCommander::commanderStateChanged, d, &ElaWindowPrivate::onNavigationRouterStateChanged);
 

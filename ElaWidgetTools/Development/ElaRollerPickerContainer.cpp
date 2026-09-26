@@ -166,9 +166,9 @@ void ElaRollerPickerContainer::paintEvent(QPaintEvent* event)
         painter.setFont(iconFont);
         painter.setPen(ElaThemeColor(_themeMode, BasicText));
         // 确定
-        painter.drawText(_overButtonRect, Qt::AlignCenter, QChar(ElaIconType::Check));
+        painter.drawText(_overButtonRect, Qt::AlignCenter, QChar(static_cast<ushort>(ElaIconType::Check)));
         // 取消
-        painter.drawText(_cancelButtonRect, Qt::AlignCenter, QChar(ElaIconType::Xmark));
+        painter.drawText(_cancelButtonRect, Qt::AlignCenter, QChar(static_cast<ushort>(ElaIconType::Xmark)));
     }
     painter.restore();
 }

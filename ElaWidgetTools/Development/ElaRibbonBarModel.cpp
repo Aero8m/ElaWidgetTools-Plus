@@ -26,7 +26,7 @@ QAction* ElaRibbonBarModel::addRibbonAction(const QString& actionName, ElaIconTy
 {
     auto action = new QAction(actionName, this);
     beginResetModel();
-    action->setProperty("ElaRibbonIcon", QChar(icon));
+    action->setProperty("ElaRibbonIcon", QChar(static_cast<ushort>(icon)));
     _ribbonDataList[0].ribbonDataList.append(action);
     endResetModel();
     return action;
@@ -72,7 +72,7 @@ QAction* ElaRibbonBarModel::addRibbonAction(const QString& groupName, const QStr
 {
     auto action = new QAction(actionName, this);
     action->setProperty("ElaRibbonGroupName", groupName);
-    action->setProperty("ElaRibbonIcon", QChar(icon));
+    action->setProperty("ElaRibbonIcon", QChar(static_cast<ushort>(icon)));
     // 查找指定Group
     beginResetModel();
     bool isFindGroup = false;

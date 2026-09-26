@@ -98,7 +98,7 @@ void ElaMenuStyle::drawControl(ControlElement element, const QStyleOption* optio
                     QFont iconFont = QFont("ElaAwesome");
                     iconFont.setPixelSize(_pMenuItemHeight * 0.57);
                     painter->setFont(iconFont);
-                    painter->drawText(QRectF(menuRect.x() + contentPadding, menuRect.y(), _iconWidth, menuRect.height()), Qt::AlignCenter, mopt->checked ? QChar(ElaIconType::Check) : QChar(ElaIconType::None));
+                    painter->drawText(QRectF(menuRect.x() + contentPadding, menuRect.y(), _iconWidth, menuRect.height()), Qt::AlignCenter, mopt->checked ? QChar(static_cast<ushort>(ElaIconType::Check)) : QChar(static_cast<ushort>(ElaIconType::None)));
                     painter->restore();
                 }
                 else
@@ -154,7 +154,7 @@ void ElaMenuStyle::drawControl(ControlElement element, const QStyleOption* optio
                     QFont iconFont = QFont("ElaAwesome");
                     iconFont.setPixelSize(eApp->getFontPixelSize() + 5);
                     painter->setFont(iconFont);
-                    painter->drawText(QRect(menuRect.right() - 25, menuRect.y(), 25, menuRect.height()), Qt::AlignVCenter, QChar(ElaIconType::AngleRight));
+                    painter->drawText(QRect(menuRect.right() - 25, menuRect.y(), 25, menuRect.height()), Qt::AlignVCenter, QChar(static_cast<ushort>(ElaIconType::AngleRight)));
                     painter->restore();
                 }
                 painter->restore();

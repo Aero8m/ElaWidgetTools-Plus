@@ -114,7 +114,7 @@ void ElaToolBarStyle::drawControl(ControlElement element, const QStyleOption* op
                 QFont iconFont = QFont("ElaAwesome");
                 iconFont.setPixelSize(eApp->getFontPixelSize() + 5);
                 painter->setFont(iconFont);
-                painter->drawText(bopt->rect, Qt::AlignCenter, QChar(ElaIconType::AngleRight));
+                painter->drawText(bopt->rect, Qt::AlignCenter, QChar(static_cast<ushort>(ElaIconType::AngleRight)));
             }
             else
             {

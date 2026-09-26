@@ -24,7 +24,7 @@ QIcon ElaIcon::getElaIcon(ElaIconType::IconName awesome)
     // painter.setBrush(QColor("#1570A5"));
     iconFont.setPixelSize(eApp->getFontPixelSize() + 12);
     painter.setFont(iconFont);
-    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(awesome));
+    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(static_cast<ushort>(awesome)));
     painter.end();
     return QIcon(pix);
 }
@@ -41,7 +41,7 @@ QIcon ElaIcon::getElaIcon(ElaIconType::IconName awesome, QColor iconColor)
     // painter.setBrush(QColor("#1570A5"));
     iconFont.setPixelSize(eApp->getFontPixelSize() + 12);
     painter.setFont(iconFont);
-    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(awesome));
+    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(static_cast<ushort>(awesome)));
     painter.end();
     return QIcon(pix);
 }
@@ -57,7 +57,7 @@ QIcon ElaIcon::getElaIcon(ElaIconType::IconName awesome, int pixelSize)
     iconFont.setPixelSize(pixelSize);
     painter.setFont(iconFont);
     // 画图形字体
-    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(awesome));
+    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(static_cast<ushort>(awesome)));
     painter.end();
     return QIcon(pix);
 }
@@ -74,7 +74,7 @@ QIcon ElaIcon::getElaIcon(ElaIconType::IconName awesome, int pixelSize, QColor i
     iconFont.setPixelSize(pixelSize);
     painter.setFont(iconFont);
     // 画图形字体
-    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(awesome));
+    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(static_cast<ushort>(awesome)));
     painter.end();
     return QIcon(pix);
 }
@@ -90,7 +90,7 @@ QIcon ElaIcon::getElaIcon(ElaIconType::IconName awesome, int pixelSize, int fixe
     iconFont.setPixelSize(pixelSize);
     painter.setFont(iconFont);
     // 画图形字体
-    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(awesome));
+    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(static_cast<ushort>(awesome)));
     painter.end();
     return QIcon(pix);
 }
@@ -107,7 +107,7 @@ QIcon ElaIcon::getElaIcon(ElaIconType::IconName awesome, int pixelSize, int fixe
     iconFont.setPixelSize(pixelSize);
     painter.setFont(iconFont);
     // 画图形字体
-    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(awesome));
+    painter.drawText(pix.rect(), Qt::AlignCenter, QChar(static_cast<ushort>(awesome)));
     painter.end();
     return QIcon(pix);
 }

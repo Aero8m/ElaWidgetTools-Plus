@@ -1,27 +1,9 @@
-# ElaWidgetTools
+# ElaWidgetTools-Plus
 
 ## 简介
 
-本项目是基于QT-Widget开发的FluentUI风格的组件库，同时提供不限于组件的常用集成功能；目前Main分支支持QT5.12以上所有版本(
-Linux为QT5.15以上)，推荐版本为QT5.15.2和QT6.6.2；
+本项目是基于ElaWidgetTools二次开发的衍生项目，适配了Qt6.9以上版本，并添加了一些我个人需要的小功能。
 
-## 重要提示
-
-该项目性质原因，不会接受任何PR；如确认组件库存在BUG，请提供具体复现步骤和QT程序版本反馈至QQ群：850243692，确认后会尽快处理；
-
-## 支持平台
-
-| [Windows][win-link] | [Ubuntu/Kylin][ubuntu-link] |
-|---------------------|-----------------------------|
-| ![win-badge]        | ![ubuntu-badge]             |
-
-[win-link]: https://github.com/Liniyous/ElaWidgetTools/actions?query=workflow%3AWindows "WindowsAction"
-
-[win-badge]: https://img.shields.io/badge/Windows-Passing-61C263
-
-[ubuntu-link]: https://github.com/Liniyous/ElaWidgetTools/actions?query=workflow%3AUbuntu "UbuntuAction"
-
-[ubuntu-badge]: https://img.shields.io/badge/Ubuntu-Passing-61C263
 
 ## 主界面预览
 
@@ -112,3 +94,5 @@ Linux为QT5.15以上)，推荐版本为QT5.15.2和QT6.6.2；
 ElaWidgetTools 使用 MIT 许可证授权所有类型项目，但要求所有分发的软件中必须保留本项目的MIT授权许可；所有未保留授权分发的商业行为均将被视为侵权行为
 
 版权所有 © 2024 by Liniyous
+
+Modified By Aero8m
