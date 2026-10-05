@@ -18,6 +18,16 @@ ElaLineEditStyle::~ElaLineEditStyle()
 {
 }
 
+int ElaLineEditStyle::pixelMetric(PixelMetric metric, const QStyleOption* option, const QWidget* widget) const
+{
+    if (metric == PM_LineEditIconMargin)
+    {
+        // Qt reserves the icon space using this margin and also positions the clear button with it.
+        return TextMargin;
+    }
+    return QProxyStyle::pixelMetric(metric, option, widget);
+}
+
 void ElaLineEditStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget) const
 {
     switch (element)

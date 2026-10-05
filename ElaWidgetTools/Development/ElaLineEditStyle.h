@@ -8,8 +8,11 @@ class ElaLineEditStyle : public QProxyStyle
 {
     Q_OBJECT
 public:
+    static constexpr int TextMargin = 12;
+
     explicit ElaLineEditStyle(QStyle* style = nullptr);
     ~ElaLineEditStyle();
+    int pixelMetric(PixelMetric metric, const QStyleOption* option = nullptr, const QWidget* widget = nullptr) const override;
     void drawPrimitive(PrimitiveElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget = nullptr) const override;
 
 private:
