@@ -42,6 +42,7 @@ ElaNavigationView::ElaNavigationView(QWidget* parent)
     floatVScrollBar->installEventFilter(this);
 
     _navigationStyle = new ElaNavigationStyle(this->style());
+    _navigationStyle->setParent(this);
     _navigationStyle->setNavigationView(this);
     setStyle(_navigationStyle);
 

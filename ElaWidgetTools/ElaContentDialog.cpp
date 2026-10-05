@@ -60,7 +60,7 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
     connect(d->_leftButton, &ElaPushButton::clicked, this, [=]() {
         onLeftButtonClicked();
         d->_doCloseAnimation(false);
-        QTimer::singleShot(0, nullptr, [=]() {
+        QTimer::singleShot(0, this, [=]() {
             Q_EMIT leftButtonClicked();
         });
     });
@@ -72,7 +72,7 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
     d->_middleButton = new ElaPushButton("minimum", this);
     connect(d->_middleButton, &ElaPushButton::clicked, this, [=]() {
         onMiddleButtonClicked();
-        QTimer::singleShot(0, nullptr, [=]() {
+        QTimer::singleShot(0, this, [=]() {
             Q_EMIT middleButtonClicked();
         });
     });
@@ -85,7 +85,7 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
     connect(d->_rightButton, &ElaPushButton::clicked, this, [=]() {
         onRightButtonClicked();
         d->_doCloseAnimation(true);
-        QTimer::singleShot(0, nullptr, [=]() {
+        QTimer::singleShot(0, this, [=]() {
             Q_EMIT rightButtonClicked();
         });
     });
