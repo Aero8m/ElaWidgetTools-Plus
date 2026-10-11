@@ -2,10 +2,14 @@
 #define ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELACENTRALSTACKEDWIDGET_H_
 
 #include <QStackedWidget>
+#include <QElapsedTimer>
+#include <QPointer>
 
 #include "ElaWidgetToolsDef.h"
 #include <QVBoxLayout>
 class QGraphicsBlurEffect;
+class QPropertyAnimation;
+class QTimer;
 class ELA_EXPORT ElaCentralStackedWidget : public QWidget
 {
     Q_OBJECT
@@ -35,6 +39,8 @@ public:
 
 protected:
     void paintEvent(QPaintEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private:
     ElaWindowType::StackSwitchMode _stackSwitchMode{ElaWindowType::StackSwitchMode::Popup};
@@ -48,6 +54,20 @@ private:
     QStackedWidget* _containerStackedWidget{nullptr};
     bool _isHasRadius{true};
     bool _isDrawNewPix{false};
+    QTimer* _popupSwitchTimer{nullptr};
+    QPropertyAnimation* _popupAnimation{nullptr};
+    QPointer<QWidget> _pendingPopupTarget;
+    QPointer<QWidget> _popupTarget;
+    QElapsedTimer _lastPopupRequest;
+    quint64 _popupRequestSerial{0};
+    quint64 _pendingPopupSerial{0};
+    bool _pendingPopupAnimated{false};
+    bool _popupActive{false};
+    QMetaObject::Connection _popupFinishedConnection;
+    QMetaObject::Connection _popupDestroyedConnection;
+    void _startPopupSwitch();
+    void _finishPopupSwitch(bool restorePage = true);
+    void _settlePopupSwitch();
     void _getTargetStackPix();
     void _getCurrentStackPix();
 };

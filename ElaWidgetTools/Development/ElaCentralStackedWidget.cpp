@@ -4,9 +4,11 @@
 #include <QApplication>
 #include <QDebug>
 #include <QGraphicsBlurEffect>
+#include <QHideEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPropertyAnimation>
+#include <QResizeEvent>
 #include <QTimer>
 #include <cmath>
 ElaCentralStackedWidget::ElaCentralStackedWidget(QWidget* parent)
@@ -39,10 +41,31 @@ ElaCentralStackedWidget::ElaCentralStackedWidget(QWidget* parent)
 
     _themeMode = eTheme->getThemeMode();
     connect(eTheme, &ElaTheme::themeModeChanged, this, &ElaCentralStackedWidget::onThemeModeChanged);
+
+    _popupSwitchTimer = new QTimer(this);
+    _popupSwitchTimer->setSingleShot(true);
+    connect(_popupSwitchTimer, &QTimer::timeout, this, &ElaCentralStackedWidget::_startPopupSwitch);
+    _popupAnimation = new QPropertyAnimation(this, "pPopupAnimationYOffset", this);
+    _popupAnimation->setDuration(300);
+    _popupAnimation->setEasingCurve(QEasingCurve::OutQuart);
+    connect(_popupAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
+        if (_popupActive) update();
+    });
+    connect(_containerStackedWidget, &QStackedWidget::widgetRemoved, this, [this]() {
+        if ((_pendingPopupTarget && _containerStackedWidget->indexOf(_pendingPopupTarget) < 0) ||
+            (_popupActive && (!_popupTarget || _containerStackedWidget->indexOf(_popupTarget) < 0)))
+        {
+            _finishPopupSwitch();
+        }
+        // Removal can renumber both the current page and a pending target.
+        _pLastTargetIndex = _pendingPopupTarget ? _containerStackedWidget->indexOf(_pendingPopupTarget)
+                                               : _containerStackedWidget->currentIndex();
+    });
 }
 
 ElaCentralStackedWidget::~ElaCentralStackedWidget()
 {
+    _finishPopupSwitch(false);
 }
 
 QStackedWidget* ElaCentralStackedWidget::getContainerStackedWidget() const
@@ -93,6 +116,44 @@ void ElaCentralStackedWidget::setIsHasRadius(bool isHasRadius)
 
 void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode stackSwitchMode, int nodeIndex, bool isRouteBack)
 {
+    QPointer<QWidget> target = _containerStackedWidget->widget(nodeIndex);
+    if (!target) return;
+    if (stackSwitchMode == ElaWindowType::Popup)
+    {
+        if (_pendingPopupTarget == target || _popupTarget == target ||
+            (!_popupSwitchTimer->isActive() && _containerStackedWidget->currentWidget() == target))
+        {
+            return;
+        }
+        const bool rapid = _popupActive || _pendingPopupTarget ||
+                           (_lastPopupRequest.isValid() && _lastPopupRequest.elapsed() < 200);
+        _lastPopupRequest.start();
+        _finishPopupSwitch();
+        if (!target || _containerStackedWidget->indexOf(target) < 0) return;
+        _stackSwitchMode = stackSwitchMode;
+        _pLastTargetIndex = _containerStackedWidget->indexOf(target);
+        _pendingPopupTarget = target;
+        _pendingPopupSerial = _popupRequestSerial;
+        _pendingPopupAnimated = !rapid;
+        const quint64 serial = _popupRequestSerial;
+        _popupDestroyedConnection = connect(target, &QObject::destroyed, this, [this, serial]() {
+            if (serial == _popupRequestSerial) _finishPopupSwitch();
+        });
+        // Keep the ordinary transition's pause. Rapid requests replace this
+        // pending task and settle immediately instead of queueing old pages.
+        _popupSwitchTimer->start(_pendingPopupAnimated ? 180 : 0);
+        return;
+    }
+    _finishPopupSwitch();
+    if (!target || _containerStackedWidget->indexOf(target) < 0) return;
+    nodeIndex = _containerStackedWidget->indexOf(target);
+    if (stackSwitchMode == ElaWindowType::None)
+    {
+        _stackSwitchMode = stackSwitchMode;
+        _pLastTargetIndex = nodeIndex;
+        _containerStackedWidget->setCurrentWidget(target);
+        return;
+    }
     if (_pLastTargetIndex == nodeIndex)
     {
         return;
@@ -108,27 +169,7 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
     }
     case ElaWindowType::Popup:
     {
-        QTimer::singleShot(180, this, [=]() {
-            QWidget* targetWidget = _containerStackedWidget->widget(nodeIndex);
-            _containerStackedWidget->setCurrentIndex(nodeIndex);
-            _getTargetStackPix();
-            targetWidget->setVisible(false);
-            QPropertyAnimation* popupAnimation = new QPropertyAnimation(this, "pPopupAnimationYOffset");
-            connect(popupAnimation, &QPropertyAnimation::valueChanged, this, [=]() {
-                update();
-            });
-            connect(popupAnimation, &QPropertyAnimation::finished, this, [=]() {
-                _targetStackPix = QPixmap();
-                targetWidget->setVisible(true);
-            });
-            popupAnimation->setEasingCurve(QEasingCurve::OutCubic);
-            popupAnimation->setDuration(300);
-            int targetWidgetY = _containerStackedWidget->mapToParent(QPoint(0, 0)).y();
-            popupAnimation->setEndValue(targetWidgetY);
-            targetWidgetY += 80;
-            popupAnimation->setStartValue(targetWidgetY);
-            popupAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-        });
+        // Handled above so rapid requests never enter another animation path.
         break;
     }
     case ElaWindowType::Scale:
@@ -243,6 +284,113 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
         break;
     }
     }
+}
+
+void ElaCentralStackedWidget::_startPopupSwitch()
+{
+    const quint64 serial = _pendingPopupSerial;
+    QPointer<QWidget> target = _pendingPopupTarget;
+    const bool animated = _pendingPopupAnimated && isVisible();
+    if (serial != _popupRequestSerial) return;
+    if (!target || _containerStackedWidget->indexOf(target) < 0)
+    {
+        _finishPopupSwitch();
+        return;
+    }
+    _containerStackedWidget->setCurrentWidget(target);
+    // A page's show handler may remove itself or request another page.
+    if (serial != _popupRequestSerial) return;
+    if (!target || _containerStackedWidget->currentWidget() != target)
+    {
+        _finishPopupSwitch();
+        return;
+    }
+    _pendingPopupTarget.clear();
+    _pLastTargetIndex = _containerStackedWidget->currentIndex();
+    if (!animated)
+    {
+        _finishPopupSwitch();
+        return;
+    }
+    _popupTarget = target;
+    _popupActive = true;
+    // Rendering can synchronously deliver layout/resize events. Publish the
+    // snapshot only if this request is still current after grab() returns.
+    const bool transparent = _isTransparent;
+    _isTransparent = true;
+    const QPixmap snapshot = _containerStackedWidget->grab();
+    _isTransparent = transparent;
+    if (serial != _popupRequestSerial || !target) return;
+    _targetStackPix = snapshot;
+    if (_targetStackPix.isNull())
+    {
+        _finishPopupSwitch();
+        return;
+    }
+    target->hide();
+    if (serial != _popupRequestSerial || !target) return;
+    const int y = _containerStackedWidget->mapToParent(QPoint(0, 0)).y();
+    _popupAnimation->setStartValue(y + 120);
+    _popupAnimation->setEndValue(y);
+    _popupFinishedConnection = connect(_popupAnimation, &QPropertyAnimation::finished, this, [this, serial]() {
+        if (serial == _popupRequestSerial) _finishPopupSwitch();
+    });
+    _popupAnimation->start();
+}
+
+void ElaCentralStackedWidget::_finishPopupSwitch(bool restorePage)
+{
+    const bool ownedPopup = _popupActive || _pendingPopupTarget || _popupSwitchTimer->isActive();
+    ++_popupRequestSerial;
+    _popupSwitchTimer->stop();
+    disconnect(_popupFinishedConnection);
+    disconnect(_popupDestroyedConnection);
+    _popupAnimation->stop();
+    QPointer<QWidget> target = _popupTarget;
+    _pendingPopupTarget.clear();
+    _popupTarget.clear();
+    _popupActive = false;
+    if (ownedPopup)
+    {
+        _targetStackPix = QPixmap();
+        _currentStackPix = QPixmap();
+        _pPopupAnimationYOffset = 0;
+        _pLastTargetIndex = _containerStackedWidget->currentIndex();
+        if (restorePage && target && _containerStackedWidget->indexOf(target) >= 0)
+        {
+            // Internal contract: synthetic animation restoration must not reload
+            // page data. Normal page activation and explicit refreshes still do.
+            const QVariant previous = target->property("ElaPageTransitionRestore");
+            target->setProperty("ElaPageTransitionRestore", true);
+            target->show();
+            if (target) target->setProperty("ElaPageTransitionRestore", previous);
+        }
+        update();
+    }
+}
+
+void ElaCentralStackedWidget::_settlePopupSwitch()
+{
+    QPointer<QWidget> target = _pendingPopupTarget;
+    _finishPopupSwitch();
+    if (target && _containerStackedWidget->indexOf(target) >= 0)
+    {
+        _containerStackedWidget->setCurrentWidget(target);
+        _pLastTargetIndex = _containerStackedWidget->currentIndex();
+    }
+}
+
+void ElaCentralStackedWidget::hideEvent(QHideEvent* event)
+{
+    _settlePopupSwitch();
+    QWidget::hideEvent(event);
+}
+
+void ElaCentralStackedWidget::resizeEvent(QResizeEvent* event)
+{
+    // A snapshot made for the old size must never be stretched or left visible.
+    _settlePopupSwitch();
+    QWidget::resizeEvent(event);
 }
 
 void ElaCentralStackedWidget::paintEvent(QPaintEvent* event)

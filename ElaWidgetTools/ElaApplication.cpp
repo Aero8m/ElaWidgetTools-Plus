@@ -78,7 +78,12 @@ void ElaApplication::setElaMicaImagePath(const QString& micaImagePath)
 {
     Q_D(ElaApplication);
     d->_pElaMicaImagePath = micaImagePath;
-    d->_initMicaBaseImage(QImage(d->_pElaMicaImagePath));
+    // Entering ElaMica initializes this image in setWindowDisplayMode().
+    // An inactive mode only needs to remember the source, avoiding duplicate workers.
+    if (d->_pWindowDisplayMode == ElaApplicationType::ElaMica)
+    {
+        d->_initMicaBaseImage(QImage(d->_pElaMicaImagePath));
+    }
     Q_EMIT pElaMicaImagePathChanged();
 }
 
