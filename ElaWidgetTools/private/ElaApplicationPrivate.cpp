@@ -69,6 +69,9 @@ bool ElaApplicationPrivate::eventFilter(QObject* watched, QEvent* event)
             if (widget)
             {
                 ElaWinShadowHelper::getInstance()->setWindowDisplayMode(widget, _pWindowDisplayMode, _pWindowDisplayMode);
+                // Closing the title bar can destroy the native handle. Qt
+                // initializes its replacement with the system color scheme.
+                ElaWinShadowHelper::getInstance()->setWindowThemeMode(widget->winId(), _themeMode == ElaThemeType::Light);
             }
 #endif
         }
