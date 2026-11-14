@@ -3,6 +3,7 @@
 #include "ElaScrollBar.h"
 #include "ElaTreeViewPrivate.h"
 #include "ElaTreeViewStyle.h"
+
 ElaTreeView::ElaTreeView(QWidget* parent)
     : QTreeView(parent), d_ptr(new ElaTreeViewPrivate())
 {
@@ -22,6 +23,7 @@ ElaTreeView::ElaTreeView(QWidget* parent)
         doItemsLayout();
     });
     setHorizontalScrollBar(hScrollBar);
+    setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     ElaScrollBar* vScrollBar = new ElaScrollBar(this);
@@ -30,17 +32,15 @@ ElaTreeView::ElaTreeView(QWidget* parent)
         doItemsLayout();
     });
     setVerticalScrollBar(vScrollBar);
+    setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     d->_treeViewStyle = new ElaTreeViewStyle(style());
+    d->_treeViewStyle->setParent(this);
     setStyle(d->_treeViewStyle);
 }
 
-ElaTreeView::~ElaTreeView()
-{
-    Q_D(ElaTreeView);
-    delete d->_treeViewStyle;
-}
+ElaTreeView::~ElaTreeView() = default;
 
 void ElaTreeView::setItemHeight(int itemHeight)
 {

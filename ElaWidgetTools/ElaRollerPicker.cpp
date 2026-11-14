@@ -1,13 +1,15 @@
 #include "ElaRollerPicker.h"
 
 #include "ElaApplication.h"
+#include "ElaColorAnimation.h"
 #include "ElaRollerPickerPrivate.h"
 #include "ElaTheme.h"
+
 #include <QDebug>
 #include <QPainter>
 #include <QVBoxLayout>
 
-Q_PROPERTY_CREATE_Q_CPP(ElaRollerPicker, int, BorderRadius)
+ELA_PROPERTY_Q_CPP(ElaRollerPicker, int, BorderRadius)
 ElaRollerPicker::ElaRollerPicker(QWidget* parent)
     : QPushButton{parent}, d_ptr(new ElaRollerPickerPrivate())
 {
@@ -202,7 +204,7 @@ void ElaRollerPicker::paintEvent(QPaintEvent* event)
     QRect baseRect = rect();
     baseRect.adjust(1, 1, -1, -1);
     painter.setPen(ElaThemeColor(d->_themeMode, BasicBorder));
-    painter.setBrush(underMouse() ? ElaThemeColor(d->_themeMode, BasicHover) : ElaThemeColor(d->_themeMode, BasicBase));
+    painter.setBrush(ElaColorAnimation::getColor(this, underMouse() ? ElaThemeColor(d->_themeMode, BasicHover) : ElaThemeColor(d->_themeMode, BasicBase), "Background"));
     painter.drawRoundedRect(baseRect, d->_pBorderRadius, d->_pBorderRadius);
 
     // Roller内容绘制

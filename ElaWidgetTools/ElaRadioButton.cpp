@@ -4,16 +4,20 @@
 #include "ElaRadioButtonStyle.h"
 #include "ElaTheme.h"
 #include "private/ElaRadioButtonPrivate.h"
+
 ElaRadioButton::ElaRadioButton(QWidget* parent)
     : QRadioButton(parent), d_ptr(new ElaRadioButtonPrivate())
 {
     Q_D(ElaRadioButton);
     d->q_ptr = this;
-    setFixedHeight(20);
+    setAttribute(Qt::WA_Hover);
+    setMouseTracking(true);
     QFont font = this->font();
-    font.setPixelSize(eApp->getFontPixelSize() + 2);
+    font.setPixelSize(eApp->getFontPixelSize());
     setFont(font);
-    setStyle(new ElaRadioButtonStyle(style()));
+    auto* radioButtonStyle = new ElaRadioButtonStyle(style());
+    radioButtonStyle->setParent(this);
+    setStyle(radioButtonStyle);
     d->onThemeChanged(eTheme->getThemeMode());
     connect(eTheme, &ElaTheme::themeModeChanged, d, &ElaRadioButtonPrivate::onThemeChanged);
 }
@@ -24,10 +28,7 @@ ElaRadioButton::ElaRadioButton(const QString& text, QWidget* parent)
     setText(text);
 }
 
-ElaRadioButton::~ElaRadioButton()
-{
-    delete this->style();
-}
+ElaRadioButton::~ElaRadioButton() = default;
 
 void ElaRadioButton::paintEvent(QPaintEvent* event)
 {

@@ -1,6 +1,7 @@
 #ifndef ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELACOLORVALUESLIDERSTYLE_H_
 #define ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELACOLORVALUESLIDERSTYLE_H_
 
+#include "ElaPropertyMacro.h"
 #include <QLinearGradient>
 #include <QProxyStyle>
 
@@ -8,7 +9,7 @@
 class ElaColorValueSliderStyle : public QProxyStyle
 {
     Q_OBJECT
-    Q_PRIVATE_REF_CREATE(QColor, BaseColor)
+    ELA_VARIABLE(QColor, BaseColor)
 public:
     explicit ElaColorValueSliderStyle(QStyle* style = nullptr);
     ~ElaColorValueSliderStyle();
@@ -18,11 +19,10 @@ public:
 
 private:
     ElaThemeType::ThemeMode _themeMode;
-    QLinearGradient* _baseGradient{nullptr};
+    mutable QLinearGradient _baseGradient{0, 0, 100, 100}; // 颜色滑槽的明度渐变
     mutable QStyle::State _lastState{QStyle::State_None};
     mutable qreal _circleRadius{0};
     void _startRadiusAnimation(qreal startRadius, qreal endRadius, QWidget* widget) const;
 };
 
 #endif // ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELACOLORVALUESLIDERSTYLE_H_
-

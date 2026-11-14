@@ -8,8 +8,8 @@ class ElaMultiSelectComboBoxPrivate;
 class ELA_EXPORT ElaMultiSelectComboBox : public QComboBox
 {
     Q_OBJECT
-    Q_Q_CREATE(ElaMultiSelectComboBox)
-    Q_PROPERTY_CREATE_Q_H(int, BorderRadius)
+    ELA_PIMPL_Q(ElaMultiSelectComboBox)
+    ELA_PROPERTY_Q_H(int, BorderRadius)
 public:
     explicit ElaMultiSelectComboBox(QWidget* parent = nullptr);
     ~ElaMultiSelectComboBox();
@@ -24,6 +24,10 @@ Q_SIGNALS:
     Q_SIGNAL void currentTextListChanged(const QStringList& selectedTextList);
 
 protected:
+    bool event(QEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
     void paintEvent(QPaintEvent* e) override;
     void showPopup() override;
     void hidePopup() override;

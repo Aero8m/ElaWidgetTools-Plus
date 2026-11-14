@@ -1,23 +1,26 @@
 #include "ElaPivotView.h"
 
+#include "ElaColorAnimation.h"
+#include "ElaPivotStyle.h"
+#include "ElaScrollBar.h"
+
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPropertyAnimation>
 
-#include "ElaPivotStyle.h"
-#include "ElaScrollBar.h"
 ElaPivotView::ElaPivotView(QWidget* parent)
     : QListView(parent)
 {
     _pMarkX = 0;
-    _pMarkWidth = 40;
+    _pMarkWidth = 30;
     _pMarkAnimationWidth = 0;
-    _pCurrentIndex = QModelIndex();
     _pCurrentIndexRect = QRect();
     _pIsAnimationFinished = true;
+    _markIndex = QModelIndex();
     setObjectName("ElaPivotView");
     setStyleSheet("#ElaPivotView{background-color:transparent;}");
     setMouseTracking(true);
+    setFrameShape(QFrame::NoFrame);
     setVerticalScrollBar(new ElaScrollBar(this));
     setHorizontalScrollBar(new ElaScrollBar(this));
     setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -28,68 +31,85 @@ ElaPivotView::~ElaPivotView()
 {
 }
 
-void ElaPivotView::doCurrentIndexChangedAnimation(const QModelIndex& index)
+bool ElaPivotView::doCurrentIndexChangedAnimation(const QModelIndex& index)
 {
-    int xOffset = visualRect(_pCurrentIndex).x() - _pCurrentIndexRect.x();
+    const QModelIndex previousIndex = _markIndex;
+    // 当前项相同时仅当mark已显示才跳过 初始化时currentIndex自动选中但mark宽度仍为0
+    if (previousIndex == index && previousIndex.isValid() && _pMarkAnimationWidth > 0)
+    {
+        return false;
+    }
+    const QRect previousIndexRect = _pCurrentIndexRect;
+    qreal markXStart = 0;
+    qreal markXEnd = 0;
+    int markWidthEnd = 0;
     if (index.row() >= 0)
     {
-        _pCurrentIndexRect = visualRect(index);
-        QPropertyAnimation* markAnimation = new QPropertyAnimation(this, "pMarkX");
-        connect(markAnimation, &QPropertyAnimation::valueChanged, this, [=]() {
-            update();
-        });
-        connect(markAnimation, &QPropertyAnimation::finished, this, [=]() {
-            _pIsAnimationFinished = true;
-            update();
-        });
-        markAnimation->setDuration(300);
-        markAnimation->setEasingCurve(QEasingCurve::InOutSine);
-        if (_pPivotStyle->getCurrentIndex() >= 0)
+        _pCurrentIndexRect = _getTextRect(index);
+        markXEnd = _pCurrentIndexRect.center().x() - _pMarkWidth / 2;
+        if (previousIndex.isValid())
         {
-            markAnimation->setStartValue(_pMarkX + xOffset);
-            markAnimation->setEndValue(_pCurrentIndexRect.center().x() - _pMarkWidth / 2);
+            // 以mark上一帧记录的矩形为基准补偿布局位移 静止状态offset为0 不会叠加目标位移
+            markXStart = _pMarkX + visualRect(previousIndex).x() - previousIndexRect.x();
         }
         else
         {
-            markAnimation->setStartValue(_pCurrentIndexRect.center().x());
-            markAnimation->setEndValue(_pCurrentIndexRect.center().x() - _pMarkWidth / 2);
-
-            QPropertyAnimation* markWidthAnimation = new QPropertyAnimation(this, "pMarkAnimationWidth");
-            markWidthAnimation->setDuration(300);
-            markWidthAnimation->setEasingCurve(QEasingCurve::InOutSine);
-            markWidthAnimation->setStartValue(0);
-            markWidthAnimation->setEndValue(_pMarkWidth);
-            markWidthAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+            markXStart = _pCurrentIndexRect.center().x();
         }
-        markAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        markWidthEnd = _pMarkWidth;
     }
     else
     {
-        _pCurrentIndexRect = visualRect(model()->index(_pPivotStyle->getCurrentIndex(), 0));
-        QPropertyAnimation* markAnimation = new QPropertyAnimation(this, "pMarkX");
-        connect(markAnimation, &QPropertyAnimation::valueChanged, this, [=]() {
-            update();
-        });
-        connect(markAnimation, &QPropertyAnimation::finished, this, [=]() {
-            _pIsAnimationFinished = true;
-            update();
-        });
-        markAnimation->setDuration(300);
-        markAnimation->setEasingCurve(QEasingCurve::InOutSine);
-        markAnimation->setStartValue(_pCurrentIndexRect.center().x() - _pMarkWidth / 2);
-        markAnimation->setEndValue(_pCurrentIndexRect.center().x());
-        markAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-
-        QPropertyAnimation* markWidthAnimation = new QPropertyAnimation(this, "pMarkAnimationWidth");
-        markWidthAnimation->setDuration(300);
-        markWidthAnimation->setEasingCurve(QEasingCurve::InOutSine);
-        markWidthAnimation->setStartValue(_pMarkAnimationWidth);
-        markWidthAnimation->setEndValue(0);
-        markWidthAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        if (!previousIndex.isValid())
+        {
+            return false;
+        }
+        // 页签已移除，消失动画沿用之前记录的文字位置
+        markXStart = _pCurrentIndexRect.center().x() - _pMarkWidth / 2;
+        markXEnd = _pCurrentIndexRect.center().x();
+        markWidthEnd = 0;
     }
-    _pCurrentIndex = index;
     _pIsAnimationFinished = false;
+    _markIndex = index;
     setCurrentIndex(index);
+    _startMarkAnimation(markXStart, markXEnd, _pMarkAnimationWidth, markWidthEnd);
+    return true;
+}
+
+QRect ElaPivotView::_getTextRect(const QModelIndex& index) const
+{
+    QRect textRect = visualRect(index);
+    QFont textFont = font();
+    textFont.setBold(true);
+    textRect.setWidth(QFontMetrics(textFont).horizontalAdvance(index.data().toString()));
+    return textRect;
+}
+
+void ElaPivotView::_startMarkAnimation(qreal markXStart, qreal markXEnd, int markWidthStart, int markWidthEnd)
+{
+    auto markAnimation = new QPropertyAnimation(this, "pMarkX");
+    connect(markAnimation, &QPropertyAnimation::valueChanged, this, [=]() {
+        update();
+    });
+    connect(markAnimation, &QPropertyAnimation::finished, this, [=]() {
+        _pIsAnimationFinished = true;
+        update();
+    });
+    markAnimation->setDuration(200);
+    markAnimation->setEasingCurve(QEasingCurve::InOutSine);
+    markAnimation->setStartValue(markXStart);
+    markAnimation->setEndValue(markXEnd);
+    markAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+
+    auto markWidthAnimation = new QPropertyAnimation(this, "pMarkAnimationWidth");
+    connect(markWidthAnimation, &QPropertyAnimation::valueChanged, this, [=]() {
+        update();
+    });
+    markWidthAnimation->setDuration(200);
+    markWidthAnimation->setEasingCurve(QEasingCurve::InOutSine);
+    markWidthAnimation->setStartValue(markWidthStart);
+    markWidthAnimation->setEndValue(markWidthEnd);
+    markWidthAnimation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void ElaPivotView::mouseDoubleClickEvent(QMouseEvent* event)
@@ -122,17 +142,11 @@ void ElaPivotView::paintEvent(QPaintEvent* event)
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(Qt::NoPen);
-    painter.setBrush(_pPivotStyle->getMarkColor());
-    QRect currentIndexRect = visualRect(_pCurrentIndex);
-    if (_pIsAnimationFinished)
-    {
-        painter.drawRoundedRect(QRect(currentIndexRect.center().x() - _pMarkWidth / 2, viewPortRect.bottom() - 4, _pMarkAnimationWidth, 3), 3, 3);
-    }
-    else
-    {
-        int xOffset = currentIndexRect.x() - _pCurrentIndexRect.x();
-        painter.drawRoundedRect(QRect(_pMarkX + xOffset, viewPortRect.bottom() - 4, _pMarkAnimationWidth, 3), 3, 3);
-    }
+    painter.setBrush(ElaColorAnimation::getColor(this, _pPivotStyle->getMarkColor(), "PivotMark"));
+    QRect currentIndexRect = _getTextRect(_markIndex);
+    const qreal markX = _pIsAnimationFinished ? currentIndexRect.center().x() - _pMarkWidth / 2
+                                              : _pMarkX + currentIndexRect.x() - _pCurrentIndexRect.x();
+    painter.drawRoundedRect(QRectF(markX, viewPortRect.bottom() - 4, _pMarkAnimationWidth, 3), 3, 3);
     painter.restore();
     QListView::paintEvent(event);
 }

@@ -1,23 +1,25 @@
 #include "ElaPopularCard.h"
 
 #include "ElaApplication.h"
+#include "ElaColorAnimation.h"
+#include "ElaPopularCardFloater.h"
+#include "ElaPopularCardPrivate.h"
+#include "ElaPushButton.h"
+#include "ElaTheme.h"
+
 #include <QEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPropertyAnimation>
 #include <QTimer>
 
-#include "ElaPopularCardFloater.h"
-#include "ElaPopularCardPrivate.h"
-#include "ElaPushButton.h"
-#include "ElaTheme.h"
-Q_PROPERTY_CREATE_Q_CPP(ElaPopularCard, int, BorderRadius)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaPopularCard, QPixmap, CardPixmap)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaPopularCard, QString, Title)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaPopularCard, QString, SubTitle)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaPopularCard, QString, InteractiveTips)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaPopularCard, QString, DetailedText)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaPopularCard, QPixmap, CardFloatPixmap)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, int, BorderRadius)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, QPixmap, CardPixmap)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, QString, Title)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, QString, SubTitle)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, QString, InteractiveTips)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, QString, DetailedText)
+ELA_PROPERTY_Q_CPP(ElaPopularCard, QPixmap, CardFloatPixmap)
 ElaPopularCard::ElaPopularCard(QWidget* parent)
     : QWidget{parent}, d_ptr(new ElaPopularCardPrivate())
 {
@@ -157,8 +159,8 @@ void ElaPopularCard::paintEvent(QPaintEvent* event)
     QRectF foregroundRect(d->_shadowBorderWidth, d->_shadowBorderWidth - d->_pHoverYOffset + 1, width() - 2 * d->_shadowBorderWidth, height() - 2 * d->_shadowBorderWidth);
     //背景绘制
     painter.setOpacity(1);
-    painter.setPen(underMouse() ? ElaThemeColor(d->_themeMode, PopupBorderHover) : ElaThemeColor(d->_themeMode, BasicBorder));
-    painter.setBrush(ElaThemeColor(d->_themeMode, BasicBaseAlpha));
+    painter.setPen(underMouse() ? ElaThemeColor(d->_themeMode, BasicBorder) : ElaThemeColor(d->_themeMode, BasicBorder));
+    painter.setBrush(ElaColorAnimation::getColor(this, ElaThemeColor(d->_themeMode, BasicBaseAlpha), "Background"));
     painter.drawRoundedRect(foregroundRect, d->_pBorderRadius, d->_pBorderRadius);
     //图片绘制
     painter.save();
@@ -211,7 +213,7 @@ void ElaPopularCard::paintEvent(QPaintEvent* event)
         //覆盖背景绘制
         QRectF tipRect(foregroundRect.right() - d->_textHSpacing - tipWidth, foregroundRect.bottom() - d->_textHSpacing - tipHeight, foregroundRect.width() / 2 - d->_textHSpacing, tipHeight);
         painter.setPen(Qt::NoPen);
-        painter.setBrush(ElaThemeColor(d->_themeMode, BasicBaseDeep));
+        painter.setBrush(ElaColorAnimation::getColor(this, ElaThemeColor(d->_themeMode, BasicBaseAlpha), "CardFooter"));
         QRectF baseRect = tipRect;
         baseRect.setRight(tipRect.x() + tipWidth);
         baseRect.adjust(-7, -3, 4, 3);

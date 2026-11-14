@@ -1,16 +1,18 @@
 #ifndef ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELASCROLLBARSTYLE_H_
 #define ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELASCROLLBARSTYLE_H_
+#include "ElaPropertyMacro.h"
 #include <QProxyStyle>
 
 #include "ElaWidgetToolsDef.h"
 class ElaScrollBar;
+class QPropertyAnimation;
 class ElaScrollBarStyle : public QProxyStyle
 {
     Q_OBJECT
-    Q_PRIVATE_CREATE(bool, IsExpand)
-    Q_PROPERTY_CREATE(qreal, Opacity)
-    Q_PROPERTY_CREATE(qreal, SliderExtent)
-    Q_PRIVATE_CREATE(ElaScrollBar*, ScrollBar)
+    ELA_VARIABLE(bool, IsExpand)
+    ELA_PROPERTY(qreal, Opacity)
+    ELA_PROPERTY(qreal, SliderExtent)
+    ELA_VARIABLE(ElaScrollBar*, ScrollBar)
 public:
     explicit ElaScrollBarStyle(QStyle* style = nullptr);
     ~ElaScrollBarStyle();
@@ -21,9 +23,9 @@ public:
 
 private:
     ElaThemeType::ThemeMode _themeMode;
-    qreal _sliderMargin{2.5};
-    int _scrollBarExtent{10};
+    QPropertyAnimation* _opacityAnimation{nullptr}; // 轨道和箭头的显隐过渡
+    QPropertyAnimation* _extentAnimation{nullptr};  // 滑块从细指示器到完整宽度的过渡
+    qreal _sliderMargin{2};
 };
 
 #endif // ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELASCROLLBARSTYLE_H_
-

@@ -10,12 +10,13 @@ class ElaExponentialBlur;
 class ElaExponentialBlurPrivate : public QObject
 {
     Q_OBJECT
-    Q_D_CREATE(ElaExponentialBlur)
+    ELA_PIMPL_D(ElaExponentialBlur)
 public:
     explicit ElaExponentialBlurPrivate(QObject* parent = nullptr);
     ~ElaExponentialBlurPrivate();
 
 private:
+    friend class ElaMicaBaseInitObject;
     static int _aprec;
     static int _zprec;
     static void _drawExponentialBlur(QImage& image, const quint16& qRadius);

@@ -1,5 +1,5 @@
-#ifndef T_LOGMODEL_H
-#define T_LOGMODEL_H
+#ifndef ELAWORKSPACE_ELAWIDGETTOOLSEXAMPLE_MODELVIEW_T_LOGMODEL_H_
+#define ELAWORKSPACE_ELAWIDGETTOOLSEXAMPLE_MODELVIEW_T_LOGMODEL_H_
 
 #include <QAbstractListModel>
 
@@ -7,10 +7,13 @@ class T_LogModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
+    static constexpr int MaximumLogCount = 10000;
+
     explicit T_LogModel(QObject* parent = nullptr);
     ~T_LogModel();
     void setLogList(QStringList list);
     void appendLogList(QString log);
+    void appendLogs(const QStringList& logs);
     QStringList getLogList() const;
 
 protected:
@@ -21,4 +24,4 @@ private:
     QStringList _logList;
 };
 
-#endif // T_LOGMODEL_H
+#endif // ELAWORKSPACE_ELAWIDGETTOOLSEXAMPLE_MODELVIEW_T_LOGMODEL_H_

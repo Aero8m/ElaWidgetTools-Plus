@@ -3,11 +3,9 @@
 
 #include <QStyledItemDelegate>
 
-#include "ElaWidgetToolsDef.h"
 class ElaColorDisplayDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
-    Q_PRIVATE_CREATE(ElaThemeType::ThemeMode, ThemeMode)
 public:
     explicit ElaColorDisplayDelegate(QObject* parent = nullptr);
     ~ElaColorDisplayDelegate();

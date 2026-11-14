@@ -1,6 +1,7 @@
 #ifndef ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELAMENUSTYLE_H_
 #define ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELAMENUSTYLE_H_
 
+#include "ElaPropertyMacro.h"
 #include <QProxyStyle>
 
 #include "ElaWidgetToolsDef.h"
@@ -8,7 +9,7 @@
 class ElaMenuStyle : public QProxyStyle
 {
     Q_OBJECT
-    Q_PROPERTY_CREATE(int, MenuItemHeight);
+    ELA_PROPERTY(int, MenuItemHeight);
 
 public:
     explicit ElaMenuStyle(QStyle* style = nullptr);
@@ -20,7 +21,6 @@ public:
 
 private:
     mutable bool _isAnyoneItemHasIcon{false};
-    int _shadowBorderWidth{6};
     ElaThemeType::ThemeMode _themeMode;
     mutable int _iconWidth{0};
 };

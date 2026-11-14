@@ -1,13 +1,14 @@
 #include "ElaPivotStyle.h"
 
+#include "ElaColorAnimation.h"
+#include "ElaTheme.h"
+
 #include <QPainter>
 #include <QPainterPath>
 #include <QStyleOption>
 
-#include "ElaTheme.h"
 ElaPivotStyle::ElaPivotStyle(QStyle* style)
 {
-    _pCurrentIndex = -1;
     _pPivotSpacing = 5;
     _themeMode = eTheme->getThemeMode();
     connect(eTheme, &ElaTheme::themeModeChanged, this, [=](ElaThemeType::ThemeMode themeMode) {
@@ -55,27 +56,22 @@ void ElaPivotStyle::drawControl(ControlElement element, const QStyleOption* opti
             // 内容绘制
             painter->save();
             painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform | QPainter::TextAntialiasing);
-            QRect textRect = proxy()->subElementRect(SE_ItemViewItemText, vopt, widget);
+            QRect textRect = vopt->rect;
             textRect.adjust(0, 0, 0, -5);
             // 文字绘制
             if (!vopt->text.isEmpty())
             {
-                if (_pPressIndex == vopt->index)
+                painter->setPen(ElaColorAnimation::getColor(widget, ElaThemeColor(_themeMode, BasicText), "PivotText", vopt->index));
+                if (_pPressIndex != vopt->index)
                 {
-                    painter->setPen(ElaThemeColor(_themeMode, BasicTextPress));
-                }
-                else
-                {
-                    if (_pCurrentIndex == vopt->index.row() || vopt->state.testFlag(QStyle::State_MouseOver))
+                    if (vopt->state.testFlag(QStyle::State_Selected) || vopt->state.testFlag(QStyle::State_MouseOver))
                     {
-                        painter->setPen(ElaThemeColor(_themeMode, BasicText));
-                    }
-                    else
-                    {
-                        painter->setPen(ElaThemeColor(_themeMode, BasicTextNoFocus));
+                        auto textFont = painter->font();
+                        textFont.setBold(true);
+                        painter->setFont(textFont);
                     }
                 }
-                painter->drawText(textRect, Qt::AlignCenter, vopt->text);
+                painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, vopt->text);
             }
             painter->restore();
         }

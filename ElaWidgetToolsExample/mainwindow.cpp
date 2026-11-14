@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include "ElaActionCommander.h"
+#include "ElaApplication.h"
 #include "ElaContentDialog.h"
 #include "ElaDockWidget.h"
 #include "ElaEventBus.h"
@@ -15,6 +16,7 @@
 #include "ElaTheme.h"
 #include "ElaToolBar.h"
 #include "ElaToolButton.h"
+#include "ExamplePage/T_ElaScreen.h"
 #include "T_About.h"
 #include "T_BaseComponents.h"
 #include "T_Card.h"
@@ -26,12 +28,9 @@
 #include <QGraphicsView>
 #include <QHBoxLayout>
 #include <QMouseEvent>
-#ifdef Q_OS_WIN
-#include "ElaApplication.h"
-#include "ExamplePage/T_ElaScreen.h"
 #include <QTimer>
-#endif
 
+#include "ElaRibbonBar.h"
 #include "ExamplePage/T_Home.h"
 #include "ExamplePage/T_Icon.h"
 #include "ExamplePage/T_LogWidget.h"
@@ -43,6 +42,7 @@ MainWindow::MainWindow(QWidget* parent)
 {
     initWindow();
 
+    // initRibbon();
     //额外布局
     initEdgeLayout();
 
@@ -91,9 +91,9 @@ void MainWindow::initWindow()
     // setNavigationBarDisplayMode(ElaNavigationType::Compact);
     // setWindowButtonFlag(ElaAppBarType::MinimizeButtonHint, false);
     setUserInfoCardPixmap(QPixmap(":/Resource/Image/Cirno.jpg"));
-    setUserInfoCardTitle("Ela Tool");
+    setUserInfoCardTitle("Ela 工具");
     setUserInfoCardSubTitle("Liniyous@gmail.com");
-    setWindowTitle("ElaWidgetTool");
+    setWindowTitle("ElaWidgetTools");
     // setIsStayTop(true);
     // setUserInfoCardVisible(false);
     // setNavigationBarWidth(260);
@@ -204,13 +204,100 @@ void MainWindow::initWindow()
     setCentralCustomWidget(centralCustomWidget);
 }
 
+void MainWindow::initRibbon()
+{
+    setAppBarHeight(30);
+    setRibbonHeight(75);
+    // QWidget* ribbonTabWidget = new QWidget(this);
+    // auto ribbonTabLayout = new QVBoxLayout(ribbonTabWidget);
+    // ribbonTabLayout->setContentsMargins(10, 10, 0, 0);
+    // _ribbonTabBar = new ElaTabBar(this);
+    // _ribbonTabBar->setTabSize(QSize(200, 35));
+    // ribbonTabLayout->addWidget(_ribbonTabBar);
+    // setCustomWidget(ElaAppBarType::CustomArea::LeftArea, ribbonTabWidget, this, "processHitTest");
+
+    _ribbonBar = new ElaRibbonBar(this);
+    // _ribbonBar->setRibbonTabBar(_ribbonTabBar);
+    _ribbonBar->move(0, getAppBarHeight());
+    auto adminAction = _ribbonBar->addRibbonAction("通用操作", "多用户管理", ElaIconType::User);
+    ElaMenu* menu = new ElaMenu(this);
+    menu->addAction("用户资料");
+    menu->addAction("角色管理");
+    menu->addAction("访问权限");
+    adminAction->setMenu(menu);
+
+    _ribbonBar->addRibbonAction("通用操作", "文件管理", "新建", ElaIconType::FilePlus);
+    _ribbonBar->addRibbonAction("通用操作", "文件管理", "打开", ElaIconType::FolderOpen);
+    _ribbonBar->addRibbonAction("通用操作", "文件管理", "关闭", ElaIconType::FolderClosed);
+    _ribbonBar->addRibbonAction("通用操作", "文件管理", "保存", ElaIconType::FileArrowDown);
+    _ribbonBar->addRibbonAction("通用操作", "文件管理", "另存为", ElaIconType::Files);
+
+    // 命令操作
+    auto undoAction = _ribbonBar->addRibbonAction("通用操作", "命令操作", "撤销", ElaIconType::RotateLeft);
+    connect(undoAction, &QAction::triggered, this, [=]() {
+        ElaActionCommander::getInstance()->undoCommand("ElaWidgetToolsAction");
+    });
+    auto redoAction = _ribbonBar->addRibbonAction("通用操作", "命令操作", "重做", ElaIconType::RotateRight);
+    connect(redoAction, &QAction::triggered, this, [=]() {
+        ElaActionCommander::getInstance()->redoCommand("ElaWidgetToolsAction");
+    });
+    undoAction->setEnabled(false);
+    redoAction->setEnabled(false);
+    connect(ElaActionCommander::getInstance(), &ElaActionCommander::commanderStateChanged, this, [=](const QString& domainName, ElaActionCommanderType::CommanderState state) {
+        if (domainName != "ElaWidgetToolsAction")
+        {
+            return;
+        }
+        switch (state)
+        {
+        case ElaActionCommanderType::UndoValid:
+        {
+            undoAction->setEnabled(true);
+            break;
+        }
+        case ElaActionCommanderType::UndoInvalid:
+        {
+            undoAction->setEnabled(false);
+            break;
+        }
+        case ElaActionCommanderType::RedoValid:
+        {
+            redoAction->setEnabled(true);
+            break;
+        }
+        case ElaActionCommanderType::RedoInvalid:
+        {
+            redoAction->setEnabled(false);
+            break;
+        }
+        }
+        _ribbonBar->update();
+    });
+
+    // 形状工具
+    auto operationAction = _ribbonBar->addRibbonAction("通用操作", "形状工具", "编辑模式", ElaIconType::PenLine);
+    auto pointAction = _ribbonBar->addRibbonAction("通用操作", "形状工具", "点形", ElaIconType::LocationPlus);
+    auto lineAction = _ribbonBar->addRibbonAction("通用操作", "形状工具", "线形", ElaIconType::ChartLine);
+    auto circleAction = _ribbonBar->addRibbonAction("通用操作", "形状工具", "圆形", ElaIconType::Circle);
+    auto polygonAction = _ribbonBar->addRibbonAction("通用操作", "形状工具", "多边形", ElaIconType::DrawPolygon);
+    auto rectAngleAction = _ribbonBar->addRibbonAction("通用操作", "形状工具", "矩形", ElaIconType::Rectangle);
+    connect(_ribbonBar, &ElaRibbonBar::ribbonActionTriggered, this, [=](const QString& pageName, const QString& groupName, QAction* action) {
+        qDebug() << pageName << groupName << action->text();
+    });
+
+    // 系统与设置
+    auto pluginAction = _ribbonBar->addRibbonAction("系统与设置", "插件管理", "插件管理", ElaIconType::PlugCirclePlus);
+    _ribbonBar->addRibbonAction("系统与设置", "系统设置", "设置", ElaIconType::GearComplex);
+    _ribbonBar->switchRibbonPage("通用操作");
+}
+
 void MainWindow::initEdgeLayout()
 {
     //菜单栏
     ElaMenuBar* menuBar = new ElaMenuBar(this);
     menuBar->setFixedHeight(30);
     QWidget* customWidget = new QWidget(this);
-    customWidget->setFixedWidth(500);
+    customWidget->setFixedWidth(450);
     QVBoxLayout* customLayout = new QVBoxLayout(customWidget);
     customLayout->setContentsMargins(0, 0, 0, 0);
     customLayout->addWidget(menuBar);
@@ -238,11 +325,11 @@ void MainWindow::initEdgeLayout()
     shortCutMenu->addElaIconAction(ElaIconType::ArrowRotateLeft, "撤销");
     menuBar->addMenu(shortCutMenu);
 
-    menuBar->addMenu("样例菜单(&B)")->addElaIconAction(ElaIconType::ArrowRotateRight, "样例选项");
-    menuBar->addMenu("样例菜单(&C)")->addElaIconAction(ElaIconType::ArrowRotateRight, "样例选项");
-    menuBar->addMenu("样例菜单(&E)")->addElaIconAction(ElaIconType::ArrowRotateRight, "样例选项");
-    menuBar->addMenu("样例菜单(&F)")->addElaIconAction(ElaIconType::ArrowRotateRight, "样例选项");
-    menuBar->addMenu("样例菜单(&G)")->addElaIconAction(ElaIconType::ArrowRotateRight, "样例选项");
+    menuBar->addMenu("文件(&B)")->addElaIconAction(ElaIconType::ArrowRotateRight, "最近打开");
+    menuBar->addMenu("编辑(&C)")->addElaIconAction(ElaIconType::ArrowRotateRight, "编辑选项");
+    menuBar->addMenu("视图(&E)")->addElaIconAction(ElaIconType::ArrowRotateRight, "视图设置");
+    menuBar->addMenu("工具(&F)")->addElaIconAction(ElaIconType::ArrowRotateRight, "工具选项");
+    menuBar->addMenu("帮助(&G)")->addElaIconAction(ElaIconType::ArrowRotateRight, "使用说明");
 
     //工具栏
     ElaToolBar* toolBar = new ElaToolBar("工具栏", this);
@@ -262,7 +349,7 @@ void MainWindow::initEdgeLayout()
     ElaToolButton* toolButton3 = new ElaToolButton(this);
     toolButton3->setElaIcon(ElaIconType::Bluetooth);
     toolButton3->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    toolButton3->setText("Bluetooth");
+    toolButton3->setText("蓝牙");
     toolBar->addWidget(toolButton3);
     ElaToolButton* toolButton4 = new ElaToolButton(this);
     toolButton4->setElaIcon(ElaIconType::BringFront);
@@ -286,7 +373,7 @@ void MainWindow::initEdgeLayout()
     ElaToolButton* toolButton11 = new ElaToolButton(this);
     toolButton11->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolButton11->setElaIcon(ElaIconType::AlarmPlus);
-    toolButton11->setText("AlarmPlus");
+    toolButton11->setText("添加闹钟");
     toolBar->addWidget(toolButton11);
     ElaToolButton* toolButton12 = new ElaToolButton(this);
     toolButton12->setElaIcon(ElaIconType::Crown);
@@ -324,9 +411,7 @@ void MainWindow::initEdgeLayout()
 void MainWindow::initContent()
 {
     _homePage = new T_Home(this);
-#ifdef Q_OS_WIN
     _elaScreenPage = new T_ElaScreen(this);
-#endif
     _iconPage = new T_Icon(this);
     _baseComponentsPage = new T_BaseComponents(this);
     _navigationPage = new T_Navigation(this);
@@ -339,43 +424,38 @@ void MainWindow::initContent()
 
     QString testKey_1;
     QString testKey_2;
-    addPageNode("HOME", _homePage, ElaIconType::House);
-#ifdef Q_OS_WIN
-    addExpanderNode("ElaDxgi", _elaDxgiKey, ElaIconType::TvMusic);
-    QString dxgiCategoryKey;
-    addCategoryNode("Windows-DXGI", dxgiCategoryKey, _elaDxgiKey);
-    addPageNode("ElaScreen", _elaScreenPage, _elaDxgiKey, 3, ElaIconType::ObjectGroup);
-#endif
+    addPageNode("首页", _homePage, ElaIconType::House);
+    addPageNode("屏幕采集", _elaScreenPage, ElaIconType::TvMusic);
     QString controlCategoryKey;
-    addCategoryNode("Controls", controlCategoryKey);
+    addCategoryNode("组件", controlCategoryKey);
     // navigation(elaScreenWidget->property("ElaPageKey").toString());
-    addPageNode("ElaBaseComponents", _baseComponentsPage, ElaIconType::CabinetFiling);
+    addPageNode("基础控件", _baseComponentsPage, ElaIconType::CabinetFiling);
 
-    addExpanderNode("ElaView", _viewKey, ElaIconType::CameraViewfinder);
+    addExpanderNode("数据视图", _viewKey, ElaIconType::CameraViewfinder);
     QString viewCategoryKey;
-    addCategoryNode("View Content", viewCategoryKey, _viewKey);
-    addPageNode("ElaListView", _listViewPage, _viewKey, 9, ElaIconType::List);
-    addPageNode("ElaTableView", _tableViewPage, _viewKey, ElaIconType::Table);
-    addPageNode("ElaTreeView", _treeViewPage, _viewKey, ElaIconType::ListTree);
+    addCategoryNode("视图内容", viewCategoryKey, _viewKey);
+    addPageNode("列表视图", _listViewPage, _viewKey, 9, ElaIconType::List);
+    addPageNode("表格视图", _tableViewPage, _viewKey, ElaIconType::Table);
+    addPageNode("树形视图", _treeViewPage, _viewKey, ElaIconType::ListTree);
     expandNavigationNode(_viewKey);
-    addPageNode("ElaCard", _cardPage, ElaIconType::Cards);
+    addPageNode("卡片展示", _cardPage, ElaIconType::Cards);
     QString customKey;
-    addCategoryNode("Custom", customKey);
-    addPageNode("ElaNavigation", _navigationPage, ElaIconType::LocationArrow);
-    addPageNode("ElaPopup", _popupPage, ElaIconType::Envelope);
-    addPageNode("ElaIcon", _iconPage, 99, ElaIconType::FontCase);
-    addExpanderNode("TEST_EXPAND_NODE1", testKey_1, ElaIconType::Acorn);
-    addExpanderNode("TEST_EXPAND_NODE2", testKey_2, testKey_1, ElaIconType::Acorn);
-    addPageNode("TEST_NODE3", new QWidget(this), testKey_2, ElaIconType::Acorn);
+    addCategoryNode("交互与资源", customKey);
+    addPageNode("导航与标签", _navigationPage, ElaIconType::LocationArrow);
+    addPageNode("弹出与选择", _popupPage, ElaIconType::Envelope);
+    addPageNode("图标资源", _iconPage, 99, ElaIconType::FontCase);
+    addExpanderNode("工作空间", testKey_1, ElaIconType::Acorn);
+    addExpanderNode("项目资源", testKey_2, testKey_1, ElaIconType::Acorn);
+    addPageNode("资源概览", new QWidget(this), testKey_2, ElaIconType::Acorn);
     for (int i = 0; i < 10; i++)
     {
-        addExpanderNode(QString("TEST_EXPAND_NODE%1").arg(i + 4), testKey_1, testKey_2, ElaIconType::Acorn);
+        addExpanderNode(QString("资源分组 %1").arg(i + 1), testKey_1, testKey_2, ElaIconType::Acorn);
     }
-    addExpanderNode("TEST_EXPAND_NODE14", testKey_1, ElaIconType::Acorn);
-    addExpanderNode("TEST_EXPAND_NODE5", testKey_1, ElaIconType::Acorn);
-    addExpanderNode("TEST_EXPAND_NODE16", testKey_1, ElaIconType::Acorn);
+    addExpanderNode("数据管理", testKey_1, ElaIconType::Acorn);
+    addExpanderNode("运行监控", testKey_1, ElaIconType::Acorn);
+    addExpanderNode("开发资源", testKey_1, ElaIconType::Acorn);
 
-    addFooterNode("About", nullptr, _aboutKey, 0, ElaIconType::User);
+    addFooterNode("关于", nullptr, _aboutKey, 0, ElaIconType::User);
     _aboutPage = new T_About();
 
     _aboutPage->hide();
@@ -386,7 +466,7 @@ void MainWindow::initContent()
             _aboutPage->show();
         }
     });
-    addFooterNode("Setting", _settingPage, _settingKey, 0, ElaIconType::GearComplex);
+    addFooterNode("设置", _settingPage, _settingKey, 0, ElaIconType::GearComplex);
     connect(this, &MainWindow::userInfoCardClicked, this, [=]() {
         this->navigation(_homePage->property("ElaPageKey").toString());
     });

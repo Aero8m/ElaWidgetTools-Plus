@@ -1,6 +1,7 @@
 #ifndef ELAWORKSPACE_ELAWIDGETTOOLS_PRIVATE_ELACONTENTDIALOGPRIVATE_H_
 #define ELAWORKSPACE_ELAWIDGETTOOLS_PRIVATE_ELACONTENTDIALOGPRIVATE_H_
 
+#include "ElaPropertyMacro.h"
 #include <QObject>
 
 #include "ElaWidgetToolsDef.h"
@@ -12,7 +13,7 @@ class ElaAppBar;
 class ElaContentDialogPrivate : public QObject
 {
     Q_OBJECT
-    Q_D_CREATE(ElaContentDialog)
+    ELA_PIMPL_D(ElaContentDialog)
 public:
     explicit ElaContentDialogPrivate(QObject* parent = nullptr);
     ~ElaContentDialogPrivate() override;
@@ -25,9 +26,9 @@ private:
     QWidget* _centralWidget{nullptr};
     QWidget* _buttonWidget{nullptr};
     QVBoxLayout* _mainLayout{nullptr};
-    QString _leftButtonText{"cancel"};
-    QString _middleButtonText{"minimum"};
-    QString _rightButtonText{"exit"};
+    QString _leftButtonText{"取消"};
+    QString _middleButtonText{"最小化"};
+    QString _rightButtonText{"退出"};
     ElaPushButton* _leftButton{nullptr};
     ElaPushButton* _middleButton{nullptr};
     ElaPushButton* _rightButton{nullptr};

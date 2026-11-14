@@ -1,20 +1,22 @@
 #include "ElaInteractiveCard.h"
 
+#include "ElaColorAnimation.h"
+#include "ElaTheme.h"
+#include "private/ElaInteractiveCardPrivate.h"
+
 #include <QPainter>
 #include <QPainterPath>
 
-#include "ElaTheme.h"
-#include "private/ElaInteractiveCardPrivate.h"
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, int, BorderRadius)
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaInteractiveCard, QString, Title);
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaInteractiveCard, QString, SubTitle);
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, int, TitlePixelSize);
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, int, SubTitlePixelSize);
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, int, TitleSpacing);
-Q_PROPERTY_REF_CREATE_Q_CPP(ElaInteractiveCard, QPixmap, CardPixmap);
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, QSize, CardPixmapSize);
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, int, CardPixmapBorderRadius)
-Q_PROPERTY_CREATE_Q_CPP(ElaInteractiveCard, ElaCardPixType::PixMode, CardPixMode);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, int, BorderRadius)
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, QString, Title);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, QString, SubTitle);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, int, TitlePixelSize);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, int, SubTitlePixelSize);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, int, TitleSpacing);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, QPixmap, CardPixmap);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, QSize, CardPixmapSize);
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, int, CardPixmapBorderRadius)
+ELA_PROPERTY_Q_CPP(ElaInteractiveCard, ElaCardPixType::PixMode, CardPixMode);
 ElaInteractiveCard::ElaInteractiveCard(QWidget* parent)
     : QPushButton(parent), d_ptr(new ElaInteractiveCardPrivate())
 {
@@ -51,7 +53,7 @@ void ElaInteractiveCard::paintEvent(QPaintEvent* event)
     painter.save();
     painter.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     painter.setPen(Qt::NoPen);
-    painter.setBrush(underMouse() ? ElaThemeColor(d->_themeMode, BasicHoverAlpha) : Qt::transparent);
+    painter.setBrush(ElaColorAnimation::getColor(this, underMouse() ? ElaThemeColor(d->_themeMode, BasicHoverAlpha) : Qt::transparent, "Background"));
     painter.drawRoundedRect(rect(), d->_pBorderRadius, d->_pBorderRadius);
     // 图片绘制
     if (!d->_pCardPixmap.isNull())

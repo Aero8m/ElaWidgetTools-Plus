@@ -1,5 +1,5 @@
-﻿#ifndef T_BASECOMPONENTS_H
-#define T_BASECOMPONENTS_H
+#ifndef ELAWORKSPACE_ELAWIDGETTOOLSEXAMPLE_EXAMPLEPAGE_T_BASECOMPONENTS_H_
+#define ELAWORKSPACE_ELAWIDGETTOOLSEXAMPLE_EXAMPLEPAGE_T_BASECOMPONENTS_H_
 
 #include "T_BasePage.h"
 
@@ -21,9 +21,6 @@ public:
     Q_INVOKABLE explicit T_BaseComponents(QWidget* parent = nullptr);
     ~T_BaseComponents() override;
 
-protected:
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-
 private:
     ElaToggleSwitch* _toggleSwitch{nullptr};
     ElaToggleButton* _toggleButton{nullptr};
@@ -44,4 +41,6 @@ private:
     ElaProgressRing* _progressBusyTransparentRing{nullptr};
 };
 
-#endif // T_BASECOMPONENTS_H
+#endif // ELAWORKSPACE_ELAWIDGETTOOLSEXAMPLE_EXAMPLEPAGE_T_BASECOMPONENTS_H_
+
+

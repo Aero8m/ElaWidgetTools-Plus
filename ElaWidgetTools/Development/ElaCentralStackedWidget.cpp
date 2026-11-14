@@ -1,6 +1,8 @@
 #include "ElaCentralStackedWidget.h"
 
+#include "ElaColorAnimation.h"
 #include "ElaTheme.h"
+
 #include <QApplication>
 #include <QDebug>
 #include <QGraphicsBlurEffect>
@@ -11,6 +13,7 @@
 #include <QResizeEvent>
 #include <QTimer>
 #include <cmath>
+
 ElaCentralStackedWidget::ElaCentralStackedWidget(QWidget* parent)
     : QWidget(parent)
 {
@@ -403,7 +406,7 @@ void ElaCentralStackedWidget::paintEvent(QPaintEvent* event)
     if (!_isTransparent)
     {
         painter.setPen(QPen(ElaThemeColor(_themeMode, BasicBaseLine), 1.5));
-        painter.setBrush(ElaThemeColor(_themeMode, WindowCentralStackBase));
+        painter.setBrush(ElaColorAnimation::getColor(this, ElaThemeColor(_themeMode, BasicBaseAlpha), "Background"));
         if (_isHasRadius)
         {
             painter.drawRoundedRect(targetRect, 10, 10);
