@@ -66,6 +66,7 @@ private:
     bool _isShowUserCard{true};
     QPointer<QWidget> _navigationBarWindow;
     bool _autoNavigationBarWidth{true};
+    qreal _navigationBarMaximumWidthRatio{0.5};
     bool _navigationBarWidthUpdatePending{false};
 
     QStringList _lastExpandedNodeKeys;

@@ -269,6 +269,18 @@ int ElaWindow::getNavigationBarWidth() const
     return d->_navigationBar->getNavigationBarWidth();
 }
 
+void ElaWindow::setNavigationBarMaximumWidthRatio(qreal ratio)
+{
+    Q_D(ElaWindow);
+    d->_navigationBar->setNavigationBarMaximumWidthRatio(ratio);
+}
+
+qreal ElaWindow::getNavigationBarMaximumWidthRatio() const
+{
+    Q_D(const ElaWindow);
+    return d->_navigationBar->getNavigationBarMaximumWidthRatio();
+}
+
 void ElaWindow::setCurrentStackIndex(int currentStackIndex)
 {
     Q_D(ElaWindow);

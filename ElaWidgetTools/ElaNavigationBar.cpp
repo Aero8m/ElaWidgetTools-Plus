@@ -20,6 +20,7 @@
 #include <QPainterPath>
 #include <QScroller>
 #include <QVBoxLayout>
+#include <QtMath>
 
 ELA_PROPERTY_Q_CPP(ElaNavigationBar, bool, IsTransparent)
 ELA_PROPERTY_Q_CPP(ElaNavigationBar, bool, IsAllowPageOpenInNewWindow)
@@ -151,6 +152,23 @@ int ElaNavigationBar::getNavigationBarWidth() const
 {
     Q_D(const ElaNavigationBar);
     return d->_pNavigationBarWidth;
+}
+
+void ElaNavigationBar::setNavigationBarMaximumWidthRatio(qreal ratio)
+{
+    Q_D(ElaNavigationBar);
+    if (!qIsFinite(ratio))
+    {
+        return;
+    }
+    d->_navigationBarMaximumWidthRatio = qBound(qreal(0), ratio, qreal(1));
+    d->_scheduleNavigationBarWidthUpdate();
+}
+
+qreal ElaNavigationBar::getNavigationBarMaximumWidthRatio() const
+{
+    Q_D(const ElaNavigationBar);
+    return d->_navigationBarMaximumWidthRatio;
 }
 
 void ElaNavigationBar::setUserInfoCardVisible(bool isVisible)

@@ -21,6 +21,9 @@ public:
     // 默认按内容自动调整；正数指定固定宽度（至少 180），非正数恢复自动。
     void setNavigationBarWidth(int navigationBarWidth);
     Q_REQUIRED_RESULT int getNavigationBarWidth() const;
+    // 自动宽度占窗口宽度的最大比例，默认 0.5；最小宽度仍优先。
+    void setNavigationBarMaximumWidthRatio(qreal ratio);
+    Q_REQUIRED_RESULT qreal getNavigationBarMaximumWidthRatio() const;
 
     void setUserInfoCardVisible(bool isVisible);
     void setUserInfoCardPixmap(const QPixmap& pix);

@@ -559,7 +559,7 @@ void ElaNavigationBarPrivate::_updateNavigationBarWidth()
         width = qMax(width, _userCard->getCardPixmapSize().width() + 26 + textWidth + 3);
     }
     // 长名称保留现有省略显示，避免占满右侧页面；折叠时仍只显示图标。
-    const int maximumWidth = q->isWindow() ? 360 : qBound(180, q->window()->width() / 2, 360);
+    const int maximumWidth = q->isWindow() ? 360 : qBound(180, int(q->window()->width() * _navigationBarMaximumWidthRatio), 360);
     width = qBound(180, width, maximumWidth);
     if (_pNavigationBarWidth == width)
     {
