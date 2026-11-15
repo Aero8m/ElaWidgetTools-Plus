@@ -54,6 +54,7 @@ ElaWindow::ElaWindow(QWidget* parent)
     connect(d->_appBar, &ElaAppBar::closeButtonClicked, this, &ElaWindow::closeButtonClicked);
     // 导航栏
     d->_navigationBar = new ElaNavigationBar(this);
+    connect(d->_navigationBar, &ElaNavigationBar::pNavigationBarWidthChanged, this, &ElaWindow::pNavigationBarWidthChanged);
     d->_navigationBar->setUserInfoCardVisible(false);
     // 返回按钮状态变更
     connect(ElaActionCommander::getInstance(), &ElaActionCommander::commanderStateChanged, d, &ElaWindowPrivate::onNavigationRouterStateChanged);
@@ -260,7 +261,6 @@ void ElaWindow::setNavigationBarWidth(int navigationBarWidth)
 {
     Q_D(ElaWindow);
     d->_navigationBar->setNavigationBarWidth(navigationBarWidth);
-    Q_EMIT pNavigationBarWidthChanged();
 }
 
 int ElaWindow::getNavigationBarWidth() const

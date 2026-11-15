@@ -10,6 +10,7 @@
 #include "ElaTheme.h"
 
 #include <QDebug>
+#include <QFontMetrics>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPropertyAnimation>
@@ -248,6 +249,20 @@ QSize ElaNavigationStyle::sizeFromContents(ContentsType type, const QStyleOption
     case QStyle::CT_ItemViewItem:
     {
         QSize itemSize = QProxyStyle::sizeFromContents(type, option, size, widget);
+        if (const auto* itemOption = qstyleoption_cast<const QStyleOptionViewItem*>(option))
+        {
+            if (itemOption->index.isValid())
+            {
+                const auto* node = static_cast<ElaNavigationNode*>(itemOption->index.internalPointer());
+                QFont font = itemOption->font;
+                if (node->getIsCategoryNode())
+                {
+                    font.setBold(true);
+                }
+                const int leftInset = node->getAwesome() != ElaIconType::None ? _iconAreaWidth : _leftPadding;
+                itemSize.setWidth(QFontMetrics(font).horizontalAdvance(node->getNodeTitle()) + leftInset + _textRightSpacing + _indicatorIconAreaWidth);
+            }
+        }
         itemSize.setHeight(_pItemHeight);
         return itemSize;
     }

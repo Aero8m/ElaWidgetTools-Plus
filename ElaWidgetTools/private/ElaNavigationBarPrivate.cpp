@@ -19,13 +19,16 @@
 #include "ElaTabWidget.h"
 #include "ElaToolButton.h"
 
+#include <QAbstractItemDelegate>
 #include <QApplication>
 #include <QDebug>
 #include <QEvent>
+#include <QFontMetrics>
 #include <QLayout>
 #include <QPropertyAnimation>
 #include <QScrollBar>
 #include <QSignalBlocker>
+#include <QStyleOptionViewItem>
 #include <QTimer>
 #include <QVariantAnimation>
 
@@ -221,8 +224,21 @@ bool ElaNavigationBarPrivate::eventFilter(QObject* watched, QEvent* event)
 {
     switch (event->type())
     {
+    case QEvent::ParentChange:
+    case QEvent::ApplicationFontChange:
+    case QEvent::FontChange:
+    case QEvent::StyleChange:
+    case QEvent::Resize:
+    {
+        if (watched == q_ptr || watched == q_ptr->window() || event->type() != QEvent::Resize)
+        {
+            _scheduleNavigationBarWidthUpdate();
+        }
+        break;
+    }
     case QEvent::Show:
     {
+        _scheduleNavigationBarWidthUpdate();
         QString nodeKey = watched->property("ElaPageKey").toString();
         if (!nodeKey.isNull())
         {
@@ -469,6 +485,93 @@ void ElaNavigationBarPrivate::_updateCategoryVisibility()
     {
         _navigationView->setRowHidden(node->getRow(), QModelIndex(), _currentDisplayMode != ElaNavigationType::Maximal);
     }
+}
+
+int ElaNavigationBarPrivate::_navigationContentWidth(const QModelIndex& parentIndex) const
+{
+    int width = 0;
+    QStyleOptionViewItem option;
+    option.initFrom(_navigationView);
+    option.widget = _navigationView;
+    option.font = _navigationView->font();
+    for (int row = 0; row < _navigationModel->rowCount(parentIndex); ++row)
+    {
+        const QModelIndex index = _navigationModel->index(row, 0, parentIndex);
+        const auto* node = static_cast<ElaNavigationNode*>(index.internalPointer());
+        const int indentation = qMax(0, node->getDepth() - 1) * _navigationView->indentation();
+        width = qMax(width, _navigationView->itemDelegate()->sizeHint(option, index).width() + indentation);
+        width = qMax(width, _navigationContentWidth(index));
+    }
+    return width;
+}
+
+void ElaNavigationBarPrivate::_scheduleNavigationBarWidthUpdate()
+{
+    Q_Q(ElaNavigationBar);
+    if (_navigationBarWindow != q->window())
+    {
+        if (_navigationBarWindow && _navigationBarWindow != q)
+        {
+            _navigationBarWindow->removeEventFilter(this);
+        }
+        _navigationBarWindow = q->window();
+        if (_navigationBarWindow != q)
+        {
+            _navigationBarWindow->installEventFilter(this);
+        }
+    }
+    if (!_autoNavigationBarWidth || _navigationBarWidthUpdatePending)
+    {
+        return;
+    }
+    _navigationBarWidthUpdatePending = true;
+    QTimer::singleShot(0, q, [this]() {
+        _navigationBarWidthUpdatePending = false;
+        _updateNavigationBarWidth();
+    });
+}
+
+void ElaNavigationBarPrivate::_updateNavigationBarWidth()
+{
+    Q_Q(ElaNavigationBar);
+    if (!_autoNavigationBarWidth)
+    {
+        return;
+    }
+    int width = _navigationContentWidth(QModelIndex()) + 2 * _navigationView->frameWidth();
+    QStyleOptionViewItem option;
+    option.initFrom(_footerView);
+    option.widget = _footerView;
+    option.font = _footerView->font();
+    for (int row = 0; row < _footerModel->getFooterNodeCount(); ++row)
+    {
+        width = qMax(width, _footerView->itemDelegate()->sizeHint(option, _footerModel->index(row, 0)).width() + 2 * _footerView->frameWidth());
+    }
+    if (_isShowUserCard)
+    {
+        QFont font = _userCard->font();
+        font.setBold(true);
+        font.setPixelSize(_userCard->getTitlePixelSize());
+        int textWidth = QFontMetrics(font).horizontalAdvance(_userCard->getTitle());
+        font.setBold(false);
+        font.setPixelSize(_userCard->getSubTitlePixelSize());
+        textWidth = qMax(textWidth, QFontMetrics(font).horizontalAdvance(_userCard->getSubTitle()));
+        width = qMax(width, _userCard->getCardPixmapSize().width() + 26 + textWidth + 3);
+    }
+    // 长名称保留现有省略显示，避免占满右侧页面；折叠时仍只显示图标。
+    const int maximumWidth = q->isWindow() ? 360 : qBound(180, q->window()->width() / 2, 360);
+    width = qBound(180, width, maximumWidth);
+    if (_pNavigationBarWidth == width)
+    {
+        return;
+    }
+    _pNavigationBarWidth = width;
+    _updateDisplayLayout();
+    if (_currentDisplayMode == ElaNavigationType::Maximal)
+    {
+        _doNavigationBarWidthAnimation(_currentDisplayMode, false);
+    }
+    Q_EMIT q->pNavigationBarWidthChanged();
 }
 
 void ElaNavigationBarPrivate::_updateDisplayLayout()

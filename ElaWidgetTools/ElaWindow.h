@@ -35,6 +35,7 @@ public:
     Q_REQUIRED_RESULT bool getIsAllowPageOpenInNewWindow() const;
     void setIsNavigationBarEnable(bool isVisible);
     Q_REQUIRED_RESULT bool getIsNavigationBarEnable() const;
+    // 默认按内容自动调整；正数指定固定宽度（至少 180），非正数恢复自动。
     void setNavigationBarWidth(int navigationBarWidth);
     Q_REQUIRED_RESULT int getNavigationBarWidth() const;
     void setCurrentStackIndex(int currentStackIndex);

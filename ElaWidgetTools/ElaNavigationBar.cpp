@@ -30,8 +30,8 @@ ElaNavigationBar::ElaNavigationBar(QWidget* parent)
     Q_D(ElaNavigationBar);
     d->q_ptr = this;
     d->_pIsAllowPageOpenInNewWindow = true;
-    d->_pNavigationBarWidth = 300;
-    setFixedWidth(300);
+    d->_pNavigationBarWidth = 180;
+    setFixedWidth(180);
     d->_pIsTransparent = true;
 
     //用户卡片
@@ -95,6 +95,25 @@ ElaNavigationBar::ElaNavigationBar(QWidget* parent)
     mainLayout->addWidget(d->_footerView);
     d->_updateDisplayLayout();
 
+    // 合并同一轮中的节点更新，避免批量添加页面时反复调整布局。
+    for (QAbstractItemModel* model: {static_cast<QAbstractItemModel*>(d->_navigationModel), static_cast<QAbstractItemModel*>(d->_footerModel)})
+    {
+        connect(model, &QAbstractItemModel::rowsInserted, d, &ElaNavigationBarPrivate::_scheduleNavigationBarWidthUpdate);
+        connect(model, &QAbstractItemModel::rowsRemoved, d, &ElaNavigationBarPrivate::_scheduleNavigationBarWidthUpdate);
+        connect(model, &QAbstractItemModel::modelReset, d, &ElaNavigationBarPrivate::_scheduleNavigationBarWidthUpdate);
+        connect(model, &QAbstractItemModel::dataChanged, d, &ElaNavigationBarPrivate::_scheduleNavigationBarWidthUpdate);
+    }
+    d->_navigationView->installEventFilter(d);
+    d->_footerView->installEventFilter(d);
+    installEventFilter(d);
+    for (auto signal: {&ElaInteractiveCard::pTitleChanged, &ElaInteractiveCard::pSubTitleChanged,
+                       &ElaInteractiveCard::pTitlePixelSizeChanged, &ElaInteractiveCard::pSubTitlePixelSizeChanged,
+                       &ElaInteractiveCard::pCardPixmapSizeChanged})
+    {
+        connect(d->_userCard, signal, d, &ElaNavigationBarPrivate::_scheduleNavigationBarWidthUpdate);
+    }
+    d->_scheduleNavigationBarWidthUpdate();
+
     // 主题设置
     d->_themeMode = eTheme->getThemeMode();
     connect(eTheme, &ElaTheme::themeModeChanged, this, [=](ElaThemeType::ThemeMode themeMode) {
@@ -109,6 +128,12 @@ ElaNavigationBar::~ElaNavigationBar()
 void ElaNavigationBar::setNavigationBarWidth(int navigationBarWidth)
 {
     Q_D(ElaNavigationBar);
+    d->_autoNavigationBarWidth = navigationBarWidth <= 0;
+    if (d->_autoNavigationBarWidth)
+    {
+        d->_scheduleNavigationBarWidthUpdate();
+        return;
+    }
     if (navigationBarWidth < 180)
     {
         navigationBarWidth = 180;
@@ -133,6 +158,7 @@ void ElaNavigationBar::setUserInfoCardVisible(bool isVisible)
     Q_D(ElaNavigationBar);
     d->_isShowUserCard = isVisible;
     d->_updateDisplayLayout();
+    d->_scheduleNavigationBarWidthUpdate();
 }
 
 void ElaNavigationBar::setUserInfoCardPixmap(const QPixmap& pix)
@@ -462,6 +488,9 @@ void ElaNavigationBar::setNodeTitle(const QString& nodeKey, const QString& nodeT
         return;
     }
     node->setNodeTitle(nodeTitle);
+    d->_navigationView->viewport()->update();
+    d->_footerView->viewport()->update();
+    d->_scheduleNavigationBarWidthUpdate();
     update();
 }
 

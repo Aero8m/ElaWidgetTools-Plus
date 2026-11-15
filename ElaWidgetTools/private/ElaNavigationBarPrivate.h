@@ -7,6 +7,8 @@
 #include <QMap>
 #include <QObject>
 #include <QPersistentModelIndex>
+#include <QPointer>
+class QWidget;
 class QAbstractItemView;
 class QPropertyAnimation;
 class QTimer;
@@ -62,6 +64,9 @@ private:
     ElaFooterDelegate* _footerDelegate{nullptr};
     ElaInteractiveCard* _userCard{nullptr};
     bool _isShowUserCard{true};
+    QPointer<QWidget> _navigationBarWindow;
+    bool _autoNavigationBarWidth{true};
+    bool _navigationBarWidthUpdatePending{false};
 
     QStringList _lastExpandedNodeKeys;
     QPersistentModelIndex _pendingScrollIndex;
@@ -93,6 +98,9 @@ private:
     void _doComponentAnimation(ElaNavigationType::NavigationDisplayMode displayMode, bool isAnimation);
     void _handleNavigationExpandState(bool isSave, bool isAnimation);
     void _updateDisplayLayout();
+    void _scheduleNavigationBarWidthUpdate();
+    void _updateNavigationBarWidth();
+    int _navigationContentWidth(const QModelIndex& parentIndex) const;
 
     void _doNavigationBarWidthAnimation(ElaNavigationType::NavigationDisplayMode displayMode, bool isAnimation);
 };

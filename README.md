@@ -38,6 +38,12 @@ ElaMica 使用 Qt 图像与绘制接口实现，支持自定义背景图；它�
 | 菜单与滚动 | ElaMenu、ElaMenuBar、ElaToolBar、ElaStatusBar、ElaScrollArea、ElaScrollBar |
 | 应用工具 | ElaApplication、ElaTheme、ElaIcon、ElaEventBus、ElaActionCommander、ElaLog、ElaExponentialBlur、ElaDxgiManager |
 
+## 导航栏自动宽度
+
+`ElaNavigationBar` 和 `ElaWindow` 的导航栏默认按最长节点文字、图标、层级缩进及用户卡片内容计算展开宽度。添加、删除、重命名节点以及字体、窗口大小变化时自动更新；子节点即使收起也参与测量，避免展开时宽度跳动。宽度最小为 180 个逻辑像素，最大为 360，并且在窗口中不超过窗口宽度的一半（最小宽度优先）。过长文字沿用省略显示。
+
+调用 `setNavigationBarWidth(正数)` 可使用原有的固定宽度行为；调用 `setNavigationBarWidth(0)` 恢复自动宽度。`getNavigationBarWidth()` 返回当前展开宽度，自动计算在下一轮事件循环生效。此功能与 `setNavigationBarDisplayMode(Auto)` 按窗口大小切换展开、紧凑和隐藏模式相互独立，不改变紧凑模式的 42 像素宽度与现有过渡动画。
+
 ## 最新界面
 
 以下图片沿用上游 V3.0 的实际运行界面，作为新版控件效果参考。本衍生版本保留的标题栏尺寸、布局及关闭按钮悬停颜色与图中有所不同。

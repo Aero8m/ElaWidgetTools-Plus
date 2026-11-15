@@ -9,6 +9,7 @@
 #include "ElaNavigationNode.h"
 #include "ElaTheme.h"
 
+#include <QFontMetrics>
 #include <QPainter>
 #include <QPainterPath>
 
@@ -83,9 +84,10 @@ void ElaFooterDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
         painter->save();
         painter->setPen(Qt::NoPen);
         painter->setBrush(Qt::white);
-        painter->drawEllipse(QPoint(255, itemRect.y() + itemRect.height() / 2), 10, 10);
+        const QPoint badgeCenter(itemRect.right() - _indicatorIconAreaWidth / 2, itemRect.center().y());
+        painter->drawEllipse(badgeCenter, 10, 10);
         painter->setBrush(ElaThemeColor(_themeMode, StatusDanger));
-        painter->drawEllipse(QPoint(255, itemRect.y() + itemRect.height() / 2), 9, 9);
+        painter->drawEllipse(badgeCenter, 9, 9);
         painter->setPen(QPen(Qt::white, 2));
         QFont font = painter->font();
         font.setBold(true);
@@ -102,7 +104,7 @@ void ElaFooterDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
             font.setPixelSize(fontPixelSize - 1);
         }
         painter->setFont(font);
-        painter->drawText(keyPoints > 9 ? 248 : 251, itemRect.y() + itemRect.height() / 2 + 4, QString::number(keyPoints));
+        painter->drawText(QRect(badgeCenter - QPoint(10, 10), QSize(20, 20)), Qt::AlignCenter, QString::number(keyPoints));
         painter->restore();
     }
 
@@ -125,6 +127,11 @@ void ElaFooterDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
 QSize ElaFooterDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
     QSize size = QStyledItemDelegate::sizeHint(option, index);
+    if (const auto* node = index.data(Qt::UserRole).value<ElaNavigationNode*>())
+    {
+        const int leftInset = node->getAwesome() != ElaIconType::None ? _iconAreaWidth : _leftPadding;
+        size.setWidth(QFontMetrics(option.font).horizontalAdvance(node->getNodeTitle()) + leftInset + _textRightSpacing + _indicatorIconAreaWidth);
+    }
     size.setHeight(40);
     return size;
 }
