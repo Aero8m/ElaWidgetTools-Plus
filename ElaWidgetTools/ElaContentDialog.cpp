@@ -5,16 +5,13 @@
 #include "ElaPushButton.h"
 #include "ElaText.h"
 #include "ElaTheme.h"
-#include "ElaWinShadowHelper.h"
 #include "private/ElaContentDialogPrivate.h"
 
-#include <QApplication>
-#include <QGuiApplication>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QPainter>
 #include <QPointer>
-#include <QScreen>
 #include <QVBoxLayout>
 
 Q_TAKEOVER_NATIVEEVENT_CPP(ElaContentDialog, d_func()->_appBar);
@@ -24,12 +21,14 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
     Q_D(ElaContentDialog);
     d->q_ptr = this;
 
-    d->_maskWidget = new ElaMaskWidget(parent);
-    d->_maskWidget->move(0, 0);
-    d->_maskWidget->setFixedSize(parent->size());
-    d->_maskWidget->setVisible(false);
+    if (parent)
+    {
+        d->_owner = parent->window();
+        d->_maskWidget = new ElaMaskWidget(d->_owner);
+        d->_maskWidget->hide();
+        d->_owner->installEventFilter(this);
+    }
 
-    resize(400, height());
     setWindowModality(Qt::ApplicationModal);
 
     d->_appBar = new ElaAppBar(this);
@@ -48,7 +47,7 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
         {
             return;
         }
-        d->_doCloseAnimation(false);
+        reject();
         if (guard)
         {
             Q_EMIT leftButtonClicked();
@@ -73,7 +72,7 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
         {
             return;
         }
-        d->_doCloseAnimation(true);
+        accept();
         if (guard)
         {
             Q_EMIT rightButtonClicked();
@@ -117,7 +116,12 @@ ElaContentDialog::ElaContentDialog(QWidget* parent)
 ElaContentDialog::~ElaContentDialog()
 {
     Q_D(ElaContentDialog);
-    d->_maskWidget->deleteLater();
+    if (d->_owner)
+    {
+        d->_owner->removeEventFilter(this);
+    }
+    disconnect(d->_workAreaChanged);
+    delete d->_maskWidget.data();
 }
 
 void ElaContentDialog::onLeftButtonClicked()
@@ -143,12 +147,7 @@ void ElaContentDialog::setCentralWidget(QWidget* centralWidget)
     delete d->_centralWidget;
     d->_centralWidget = centralWidget;
     d->_mainLayout->insertWidget(0, centralWidget);
-    d->_mainLayout->activate();
-    adjustSize();
-    if (isVisible())
-    {
-        d->_moveToCenter();
-    }
+    d->_scheduleLayoutUpdate();
 }
 
 void ElaContentDialog::setLeftButtonText(const QString& text)
@@ -171,19 +170,69 @@ void ElaContentDialog::setRightButtonText(const QString& text)
 
 void ElaContentDialog::close()
 {
+    reject();
+}
+
+bool ElaContentDialog::event(QEvent* event)
+{
+    const bool handled = QDialog::event(event);
+    if (event->type() == QEvent::LayoutRequest || event->type() == QEvent::FontChange ||
+        event->type() == QEvent::StyleChange || event->type() == QEvent::ScreenChangeInternal ||
+        event->type() == QEvent::Move || event->type() == QEvent::Resize)
+    {
+        Q_D(ElaContentDialog);
+        if (!d->_applyingGeometry)
+        {
+            d->_scheduleLayoutUpdate();
+        }
+    }
+    return handled;
+}
+
+bool ElaContentDialog::eventFilter(QObject* watched, QEvent* event)
+{
     Q_D(ElaContentDialog);
-    d->_doCloseAnimation(false);
+    if (watched == d->_owner && d->_maskWidget)
+    {
+        switch (event->type())
+        {
+        case QEvent::Resize:
+            d->_maskWidget->setGeometry(d->_owner->rect());
+            [[fallthrough]];
+        case QEvent::Move:
+        case QEvent::WindowStateChange:
+        case QEvent::ScreenChangeInternal:
+            d->_scheduleLayoutUpdate();
+            break;
+        default:
+            break;
+        }
+    }
+    return QDialog::eventFilter(watched, event);
 }
 
 void ElaContentDialog::showEvent(QShowEvent* event)
 {
     Q_D(ElaContentDialog);
-    d->_maskWidget->setVisible(true);
-    d->_maskWidget->raise();
-    d->_maskWidget->setFixedSize(parentWidget()->size());
-    d->_maskWidget->doMaskAnimation(90);
-    d->_moveToCenter();
     QDialog::showEvent(event);
+    d->_fitAndCenter();
+    if (d->_maskWidget)
+    {
+        d->_maskWidget->setGeometry(d->_owner->rect());
+        d->_maskWidget->show();
+        d->_maskWidget->raise();
+        d->_maskWidget->doMaskAnimation(90);
+    }
+}
+
+void ElaContentDialog::hideEvent(QHideEvent* event)
+{
+    Q_D(ElaContentDialog);
+    if (d->_maskWidget)
+    {
+        d->_maskWidget->doMaskAnimation(0);
+    }
+    QDialog::hideEvent(event);
 }
 
 void ElaContentDialog::paintEvent(QPaintEvent* event)
@@ -204,12 +253,11 @@ void ElaContentDialog::paintEvent(QPaintEvent* event)
 
 void ElaContentDialog::keyPressEvent(QKeyEvent* event)
 {
-    Q_D(ElaContentDialog);
     switch (event->key())
     {
     case Qt::Key_Escape:
     {
-        d->_doCloseAnimation(false);
+        reject();
         break;
     }
     default:

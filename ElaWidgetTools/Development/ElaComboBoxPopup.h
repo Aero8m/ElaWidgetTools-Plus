@@ -2,10 +2,12 @@
 #define ELAWORKSPACE_ELAWIDGETTOOLS_ELACOMBOBOXPOPUP_H_
 
 #include <QObject>
+#include <QPersistentModelIndex>
 #include <QPointer>
 #include <QRect>
 
 class QComboBox;
+class QTouchEvent;
 class QVariantAnimation;
 class QWidget;
 class ElaComboBoxPopup : public QObject
@@ -54,6 +56,12 @@ private:
     bool _isClosing{false};                       // 当前是否处于收回阶段
     bool _isDropDown{false};                      // 是否在主体上下方独立弹出而非原地覆盖
     bool _isOpenUp{false};                        // 独立弹出模式下是否向主体上方展开
+    bool _touchActive{false};
+    quint64 _touchSequence{0};
+    QPoint _touchStart;
+    QPersistentModelIndex _tapIndex;
+    bool _handleTouch(QWidget* viewport, QTouchEvent* event);
+    void _cancelTouch();
     void _resetAnimation();
     void _applyAnimationFrame(qreal progress);
     QRect _getComboTargetRect() const;

@@ -703,12 +703,18 @@ int ElaAppBar::takeOverNativeEvent(const QByteArray& eventType, void* message, l
     }
     case WM_GETMINMAXINFO:
     {
+        if (d->_pIsFixedSize && d->_pAppBarHeight == 0 && d->_pRibbonHeight == 0)
+        {
+            // Qt applies the content dialog's layout limits in the native window's DPI.
+            return 0;
+        }
         MINMAXINFO* minmaxInfo = reinterpret_cast<MINMAXINFO*>(lParam);
         RECT rect;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
         d->_lastMinTrackWidth = d->_calculateMinimumWidth();
-        minmaxInfo->ptMinTrackSize.x = d->_lastMinTrackWidth * qApp->devicePixelRatio();
-        minmaxInfo->ptMinTrackSize.y = parentWidget()->minimumHeight() * qApp->devicePixelRatio();
+        const qreal windowDpr = window()->devicePixelRatioF();
+        minmaxInfo->ptMinTrackSize.x = qRound(d->_lastMinTrackWidth * windowDpr);
+        minmaxInfo->ptMinTrackSize.y = qRound(parentWidget()->minimumHeight() * windowDpr);
         minmaxInfo->ptMaxPosition.x = rect.left;
         minmaxInfo->ptMaxPosition.y = rect.top;
         return 1;

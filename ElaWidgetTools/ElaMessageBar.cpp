@@ -1,23 +1,17 @@
 #include "ElaMessageBar.h"
 
-#include "ElaApplication.h"
-#include "ElaIconButton.h"
 #include "ElaTheme.h"
 #include "private/ElaMessageBarPrivate.h"
 
 #include <QApplication>
-#include <QHBoxLayout>
+#include <QEvent>
 #include <QPainter>
-#include <QPainterPath>
-#include <QPropertyAnimation>
-#include <QResizeEvent>
 
 ElaMessageBar::ElaMessageBar(ElaMessageBarType::PositionPolicy policy, ElaMessageBarType::MessageMode messageMode, QString& title, QString& text, int displayMsec, QWidget* parent)
     : QWidget{parent}, d_ptr(new ElaMessageBarPrivate())
 {
     Q_D(ElaMessageBar);
     d->q_ptr = this;
-    d->_borderRadius = 6;
     d->_title = title;
     d->_text = text;
     d->_policy = policy;
@@ -28,18 +22,8 @@ ElaMessageBar::ElaMessageBar(ElaMessageBarType::PositionPolicy policy, ElaMessag
         update();
     });
     setMouseTracking(true);
-    d->_pOpacity = 1;
     parent->installEventFilter(this);
-    int fontPixelSize = eApp->getFontPixelSize();
     setFont(QFont("微软雅黑"));
-    d->_closeButton = new ElaIconButton(ElaIconType::Xmark, fontPixelSize + 3, this);
-    d->_closeButton->setFixedWidth(d->_closeButtonWidth);
-    d->_closeButton->setBorderRadius(5);
-    connect(d->_closeButton, &ElaIconButton::clicked, d, &ElaMessageBarPrivate::messageBarEnd);
-    QHBoxLayout* mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 10, 0);
-    mainLayout->addStretch();
-    mainLayout->addWidget(d->_closeButton);
     setObjectName("ElaMessageBar");
     setStyleSheet("#ElaMessageBar{background-color:transparent;}");
     d->_messageBarCreate(displayMsec);
@@ -51,7 +35,6 @@ ElaMessageBar::~ElaMessageBar()
 
 void ElaMessageBar::success(ElaMessageBarType::PositionPolicy policy, QString title, QString text, int displayMsec, QWidget* parent)
 {
-    // qDebug() << QApplication::topLevelWidgets();
     if (!parent)
     {
         QList<QWidget*> widgetList = QApplication::topLevelWidgets();
@@ -134,96 +117,22 @@ void ElaMessageBar::error(ElaMessageBarType::PositionPolicy policy, QString titl
     ElaMessageBar* bar = new ElaMessageBar(policy, ElaMessageBarType::Error, title, text, displayMsec, parent);
     Q_UNUSED(bar);
 }
-#include <QDebug>
 void ElaMessageBar::paintEvent(QPaintEvent* event)
 {
     Q_D(ElaMessageBar);
-    int fontPixelSize = eApp->getFontPixelSize();
     QPainter painter(this);
-    painter.setOpacity(d->_pOpacity);
-    painter.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
-    // 高性能阴影
-    eTheme->drawEffectShadow(&painter, rect(), d->_shadowBorderWidth, d->_borderRadius);
-
-    // 背景和图标绘制
-    painter.save();
+    painter.setOpacity(d->_opacity);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     d->_drawBackground(&painter);
-    // 文字绘制
-    // 标题
-    QFont font = this->font();
-    font.setWeight(QFont::Bold);
-    font.setPixelSize(fontPixelSize);
-    painter.setFont(font);
-    int titleTextWidth = painter.fontMetrics().horizontalAdvance(d->_title) + 1;
-    if (titleTextWidth > 100)
-    {
-        titleTextWidth = 100;
-    }
-    int textFlags = Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap | Qt::TextWrapAnywhere;
-    painter.drawText(QRect(d->_leftPadding + d->_titleLeftSpacing, -1, titleTextWidth, height()), textFlags, d->_title);
-    // 正文
-    font.setWeight(QFont::Light);
-    painter.setFont(font);
-    painter.drawText(QRect(d->_leftPadding + d->_titleLeftSpacing + titleTextWidth + d->_textLeftSpacing, 0, width() - (d->_leftPadding + d->_titleLeftSpacing + titleTextWidth + d->_textLeftSpacing + d->_closeButtonWidth + d->_closeButtonLeftRightMargin / 2), height() - d->_timePercentHeight), textFlags, d->_text);
-    painter.restore();
+    d->_drawText(&painter);
 }
 
 bool ElaMessageBar::eventFilter(QObject* watched, QEvent* event)
 {
-    Q_D(ElaMessageBar);
-    if (watched == parentWidget())
+    if (watched == parentWidget() && (event->type() == QEvent::Resize || event->type() == QEvent::ScreenChangeInternal))
     {
-        switch (event->type())
-        {
-        case QEvent::Resize:
-        {
-            QResizeEvent* resizeEvent = dynamic_cast<QResizeEvent*>(event);
-            QSize offsetSize = parentWidget()->size() - resizeEvent->oldSize();
-            if (d->_isNormalDisplay)
-            {
-                switch (d->_policy)
-                {
-                case ElaMessageBarType::Top:
-                {
-                    this->move(parentWidget()->width() / 2 - minimumWidth() / 2, this->y());
-                    break;
-                }
-                case ElaMessageBarType::Bottom:
-                {
-                    this->move(parentWidget()->width() / 2 - minimumWidth() / 2, this->pos().y() + offsetSize.height());
-                    break;
-                }
-                case ElaMessageBarType::Left:
-                case ElaMessageBarType::TopLeft:
-                {
-                    this->move(d->_messageBarHorizontalMargin, this->pos().y());
-                    break;
-                }
-                case ElaMessageBarType::BottomLeft:
-                {
-                    this->move(d->_messageBarHorizontalMargin, this->pos().y() + offsetSize.height());
-                    break;
-                }
-                case ElaMessageBarType::Right:
-                case ElaMessageBarType::TopRight:
-                {
-                    this->move(parentWidget()->width() - minimumWidth() - d->_messageBarHorizontalMargin, this->y());
-                    break;
-                }
-                case ElaMessageBarType::BottomRight:
-                {
-                    this->move(parentWidget()->width() - minimumWidth() - d->_messageBarHorizontalMargin, this->pos().y() + offsetSize.height());
-                    break;
-                }
-                }
-            }
-            break;
-        }
-        default:
-        {
-            break;
-        }
-        }
+        Q_D(ElaMessageBar);
+        d->_ownerResized();
     }
     return QWidget::eventFilter(watched, event);
 }

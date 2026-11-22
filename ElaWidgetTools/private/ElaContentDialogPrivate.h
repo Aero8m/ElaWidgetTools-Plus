@@ -3,6 +3,7 @@
 
 #include "ElaPropertyMacro.h"
 #include <QObject>
+#include <QPointer>
 
 #include "ElaWidgetToolsDef.h"
 class QVBoxLayout;
@@ -10,6 +11,7 @@ class ElaPushButton;
 class ElaContentDialog;
 class ElaMaskWidget;
 class ElaAppBar;
+class QScreen;
 class ElaContentDialogPrivate : public QObject
 {
     Q_OBJECT
@@ -22,7 +24,12 @@ private:
     qint64 _currentWinID{0};
     ElaAppBar* _appBar{nullptr};
     ElaThemeType::ThemeMode _themeMode;
-    ElaMaskWidget* _maskWidget{nullptr};
+    QPointer<QWidget> _owner;
+    QPointer<ElaMaskWidget> _maskWidget;
+    QPointer<QScreen> _screen;
+    QMetaObject::Connection _workAreaChanged;
+    bool _layoutUpdatePending{false};
+    bool _applyingGeometry{false};
     QWidget* _centralWidget{nullptr};
     QWidget* _buttonWidget{nullptr};
     QVBoxLayout* _mainLayout{nullptr};
@@ -32,8 +39,8 @@ private:
     ElaPushButton* _leftButton{nullptr};
     ElaPushButton* _middleButton{nullptr};
     ElaPushButton* _rightButton{nullptr};
-    void _doCloseAnimation(bool isAccept);
-    void _moveToCenter();
+    void _scheduleLayoutUpdate();
+    void _fitAndCenter();
 };
 
 #endif // ELAWORKSPACE_ELAWIDGETTOOLS_PRIVATE_ELACONTENTDIALOGPRIVATE_H_

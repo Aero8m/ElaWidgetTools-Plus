@@ -5,6 +5,7 @@
 
 #include "ElaWidgetToolsExport.h"
 #include "ElaPropertyMacro.h"
+class QPropertyAnimation;
 class ElaMaskWidget : public QWidget
 {
     Q_OBJECT
@@ -16,6 +17,9 @@ public:
 
 protected:
     virtual void paintEvent(QPaintEvent* event) override;
+
+private:
+    QPropertyAnimation* _animation;
 };
 
 #endif // ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELAMASKWIDGET_H_

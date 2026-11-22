@@ -31,7 +31,10 @@ Q_SIGNALS:
     Q_SIGNAL void rightButtonClicked();
 
 protected:
+    bool event(QEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
     virtual void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
     virtual void paintEvent(QPaintEvent* event) override;
     virtual void keyPressEvent(QKeyEvent* event) override;
 };

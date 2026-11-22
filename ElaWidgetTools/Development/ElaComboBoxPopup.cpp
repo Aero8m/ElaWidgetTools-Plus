@@ -10,8 +10,13 @@
 #include <QFrame>
 #include <QKeyEvent>
 #include <QLayout>
+#include <QMouseEvent>
 #include <QScreen>
 #include <QScrollBar>
+#include <QScroller>
+#include <QScrollerProperties>
+#include <QTimer>
+#include <QTouchEvent>
 #include <QVariantAnimation>
 #include <QWindow>
 
@@ -49,6 +54,7 @@ ElaComboBoxPopup::ElaComboBoxPopup(QComboBox* comboBox)
 
 void ElaComboBoxPopup::prepare()
 {
+    _cancelTouch();
     _resetAnimation();
     QWidget* container = _comboBox->view()->window();
     if (container == _comboBox->window())
@@ -60,6 +66,10 @@ void ElaComboBoxPopup::prepare()
         if (_container)
         {
             _container->removeEventFilter(this);
+            if (auto* window = _container->windowHandle())
+            {
+                window->removeEventFilter(this);
+            }
         }
         _container = container;
         container->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
@@ -89,6 +99,14 @@ void ElaComboBoxPopup::prepare()
     container->setMinimumSize(0, 0);
     container->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     _comboBox->view()->installEventFilter(this);
+    QWidget* viewport = _comboBox->view()->viewport();
+    viewport->setAttribute(Qt::WA_AcceptTouchEvents);
+    viewport->installEventFilter(this);
+    auto* scroller = QScroller::scroller(viewport);
+    auto properties = scroller->scrollerProperties();
+    properties.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
+    properties.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
+    scroller->setScrollerProperties(properties);
 }
 
 void ElaComboBoxPopup::open(int anchorRow, bool isDropDown)
@@ -96,6 +114,11 @@ void ElaComboBoxPopup::open(int anchorRow, bool isDropDown)
     if (!_container || !_container->isVisible() || _comboBox->count() == 0)
     {
         return;
+    }
+    // Qt Widgets normally converts touch on Qt::Popup windows into mouse events.
+    if (auto* window = _container->windowHandle())
+    {
+        window->installEventFilter(this);
     }
     _revealAnimation->stop();
     _isClosing = false;
@@ -198,6 +221,7 @@ void ElaComboBoxPopup::open(int anchorRow, bool isDropDown)
 
 bool ElaComboBoxPopup::close()
 {
+    _cancelTouch();
     if (!_container || !_container->isVisible())
     {
         _resetAnimation();
@@ -298,8 +322,32 @@ bool ElaComboBoxPopup::eventFilter(QObject* watched, QEvent* event)
 {
     if (watched == _container && event->type() == QEvent::Hide)
     {
+        _cancelTouch();
         _resetAnimation();
         _comboBox->update();
+    }
+    else if (watched == _comboBox->view()->viewport() || (_container && watched == _container->windowHandle()))
+    {
+        switch (event->type())
+        {
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        case QEvent::TouchEnd:
+        case QEvent::TouchCancel:
+            if (_handleTouch(_comboBox->view()->viewport(), static_cast<QTouchEvent*>(event)))
+            {
+                return true;
+            }
+            break;
+        case QEvent::MouseButtonPress:
+            if (watched == _comboBox->view()->viewport())
+            {
+                _cancelTouch();
+            }
+            break;
+        default:
+            break;
+        }
     }
     else if (watched == _comboBox->view() && event->type() == QEvent::KeyPress)
     {
@@ -311,6 +359,129 @@ bool ElaComboBoxPopup::eventFilter(QObject* watched, QEvent* event)
         }
     }
     return QObject::eventFilter(watched, event);
+}
+
+bool ElaComboBoxPopup::_handleTouch(QWidget* viewport, QTouchEvent* event)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (event->pointingDevice()->type() != QInputDevice::DeviceType::TouchScreen)
+    {
+        return false;
+    }
+    const auto& points = event->points();
+#else
+    if (event->device()->type() != QTouchDevice::TouchScreen)
+    {
+        return false;
+    }
+    const auto& points = event->touchPoints();
+#endif
+    const bool beginning = event->type() == QEvent::TouchBegin;
+    if (!getIsVisible() || (!beginning && !_touchActive))
+    {
+        return false;
+    }
+    auto* scroller = QScroller::scroller(viewport);
+    if (event->type() == QEvent::TouchCancel || points.size() != 1)
+    {
+        if (beginning)
+        {
+            return false;
+        }
+        // Keep consuming the sequence after an extra finger or a cancellation.
+        _tapIndex = QModelIndex();
+        scroller->stop();
+        _touchActive = event->type() == QEvent::TouchUpdate;
+        event->accept();
+        return true;
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QPoint global = points.first().globalPosition().toPoint();
+#else
+    const QPoint global = points.first().screenPos().toPoint();
+#endif
+    auto* view = _comboBox->view();
+    const auto time = event->timestamp();
+    const QPoint position = viewport->mapFromGlobal(global);
+    if (beginning && (!viewport->rect().contains(position) ||
+        (!view->mask().isEmpty() && !view->mask().contains(view->mapFromGlobal(global)))))
+    {
+        return false;
+    }
+    event->accept(); // Dragging must never reach the combo box as a synthesized mouse release.
+    if (beginning)
+    {
+        _tapIndex = scroller->state() == QScroller::Inactive ? view->indexAt(position) : QModelIndex();
+        if (_isAnimating)
+        {
+            _resetAnimation();
+            _comboBox->update();
+        }
+        ++_touchSequence;
+        _touchActive = true;
+        _touchStart = global;
+        const QPoint local = viewport->mapFromGlobal(global);
+        scroller->handleInput(QScroller::InputPress, local, time);
+        return true;
+    }
+    if ((global - _touchStart).manhattanLength() >= QApplication::startDragDistance())
+    {
+        _tapIndex = QModelIndex();
+    }
+    if (event->type() == QEvent::TouchUpdate)
+    {
+        scroller->handleInput(QScroller::InputMove, position, time);
+        if (scroller->state() == QScroller::Dragging)
+        {
+            _tapIndex = QModelIndex();
+        }
+        return true;
+    }
+
+    _touchActive = false;
+    const QPersistentModelIndex index = _tapIndex;
+    _tapIndex = QModelIndex();
+    scroller->handleInput(QScroller::InputRelease, position, time);
+    if (index.isValid() && scroller->state() == QScroller::Inactive)
+    {
+        const auto sequence = _touchSequence;
+        const auto modifiers = event->modifiers();
+        // Use the existing single/multi-selection handling once touch delivery has ended.
+        QTimer::singleShot(0, this, [this, target = QPointer<QWidget>(viewport), index, global, modifiers, sequence]() {
+            if (!target || sequence != _touchSequence || !getIsVisible())
+            {
+                return;
+            }
+            const QPoint local = target->mapFromGlobal(global);
+            if (!target->rect().contains(local) || _comboBox->view()->indexAt(local) != index ||
+                !index.flags().testFlag(Qt::ItemIsEnabled) || !index.flags().testFlag(Qt::ItemIsSelectable))
+            {
+                return;
+            }
+            const QPoint windowPos = target->window()->mapFromGlobal(global);
+            QMouseEvent press(QEvent::MouseButtonPress, local, windowPos, global,
+                Qt::LeftButton, Qt::LeftButton, modifiers, Qt::MouseEventSynthesizedByApplication);
+            QCoreApplication::sendEvent(target, &press);
+            if (target)
+            {
+                QMouseEvent release(QEvent::MouseButtonRelease, local, windowPos, global,
+                    Qt::LeftButton, Qt::NoButton, modifiers, Qt::MouseEventSynthesizedByApplication);
+                QCoreApplication::sendEvent(target, &release);
+            }
+        });
+    }
+    return true;
+}
+
+void ElaComboBoxPopup::_cancelTouch()
+{
+    ++_touchSequence;
+    _touchActive = false;
+    _tapIndex = QModelIndex();
+    if (QWidget* viewport = _comboBox->view()->viewport(); QScroller::hasScroller(viewport))
+    {
+        QScroller::scroller(viewport)->stop();
+    }
 }
 
 void ElaComboBoxPopup::_resetAnimation()
