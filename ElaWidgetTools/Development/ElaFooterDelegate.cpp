@@ -8,6 +8,7 @@
 #include "ElaNavigationMarkAnimation.h"
 #include "ElaNavigationNode.h"
 #include "ElaTheme.h"
+#include "ElaWidgetToolsDef.h"
 
 #include <QFontMetrics>
 #include <QPainter>
@@ -132,6 +133,6 @@ QSize ElaFooterDelegate::sizeHint(const QStyleOptionViewItem& option, const QMod
         const int leftInset = node->getAwesome() != ElaIconType::None ? _iconAreaWidth : _leftPadding;
         size.setWidth(QFontMetrics(option.font).horizontalAdvance(node->getNodeTitle()) + leftInset + _textRightSpacing + _indicatorIconAreaWidth);
     }
-    size.setHeight(40);
+    size.setHeight(ElaWidgetToolsSize::DefaultListItemHeight);
     return size;
 }

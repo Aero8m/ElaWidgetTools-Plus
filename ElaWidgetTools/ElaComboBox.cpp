@@ -5,6 +5,7 @@
 #include "ElaControlAnimation.h"
 #include "ElaScrollBar.h"
 #include "ElaTheme.h"
+#include "ElaWidgetToolsDef.h"
 #include "private/ElaComboBoxPrivate.h"
 
 #include <QAbstractItemView>
@@ -23,7 +24,7 @@ ElaComboBox::ElaComboBox(QWidget* parent)
     d->_pBorderRadius = 4;
     d->_themeMode = eTheme->getThemeMode();
     setObjectName("ElaComboBox");
-    setMinimumHeight(32);
+    setFixedHeight(ElaWidgetToolsSize::DefaultControlHeight);
     d->_comboBoxStyle = new ElaComboBoxStyle(style());
     d->_comboBoxStyle->setParent(this);
     setStyle(d->_comboBoxStyle);
@@ -49,6 +50,10 @@ ElaComboBox::ElaComboBox(QWidget* parent)
     d->_comboBoxStyle->setPopup(d->_popup);
     connect(d->_popup, &ElaComboBoxPopup::closeFinished, this, [this]() {
         QComboBox::hidePopup();
+    });
+    connect(this, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
+        // 旧标记可能位于列表当前选区之外 确认新值时一并刷新
+        view()->viewport()->update();
     });
     connect(this, &ElaComboBox::pBorderRadiusChanged, this, [this]() {
         update();
