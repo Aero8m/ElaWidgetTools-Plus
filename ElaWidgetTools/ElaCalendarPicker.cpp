@@ -98,8 +98,7 @@ void ElaCalendarPicker::paintEvent(QPaintEvent* event)
     painter.save();
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     // 边框和背景绘制
-    QRect baseRect = rect();
-    baseRect.adjust(1, 1, -1, -1);
+    const auto baseRect = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
     const bool isPressed = isDown() || d->_controlAnimation->getIsPressed();
     painter.setPen(QPen(ElaControlStyle::getControlBorder(baseRect, d->_themeMode, isEnabled() && !isPressed), 1));
     painter.setBrush(d->_controlAnimation->getBackgroundColor(!isEnabled() ? ElaThemeColor(d->_themeMode, BasicDisable) : isPressed ? ElaThemeColor(d->_themeMode, BasicPress)
@@ -112,14 +111,13 @@ void ElaCalendarPicker::paintEvent(QPaintEvent* event)
     QString date = QString("%1/%2/%3").arg(selectedDate.year()).arg(selectedDate.month()).arg(selectedDate.day());
     painter.setPen(!isEnabled() ? ElaThemeColor(d->_themeMode, BasicTextDisable) : isPressed ? ElaThemeColor(d->_themeMode, BasicTextNoFocus)
                                                                                              : ElaThemeColor(d->_themeMode, BasicText));
-    QRect textRect = baseRect;
-    textRect.adjust(10, 0, 0, 0);
+    const QRect textRect = rect().adjusted(11, 0, 0, 0);
     painter.drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, date);
 
     // 图标绘制
     QFont iconFont = QFont("ElaAwesome");
     iconFont.setPixelSize(eApp->getFontPixelSize() + 4);
     painter.setFont(iconFont);
-    painter.drawText(QRect(baseRect.right() - 25, 0, 15, height()), Qt::AlignVCenter | Qt::AlignRight, QChar(static_cast<ushort>(ElaIconType::CalendarRange)));
+    painter.drawText(QRect(rect().right() - 26, 0, 15, height()), Qt::AlignVCenter | Qt::AlignRight, QChar(static_cast<ushort>(ElaIconType::CalendarRange)));
     painter.restore();
 }

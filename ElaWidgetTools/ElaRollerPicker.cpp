@@ -201,8 +201,7 @@ void ElaRollerPicker::paintEvent(QPaintEvent* event)
     painter.save();
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     // 边框和背景绘制
-    QRect baseRect = rect();
-    baseRect.adjust(1, 1, -1, -1);
+    const auto baseRect = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
     painter.setPen(ElaThemeColor(d->_themeMode, BasicBorder));
     painter.setBrush(ElaColorAnimation::getColor(this, underMouse() ? ElaThemeColor(d->_themeMode, BasicHover) : ElaThemeColor(d->_themeMode, BasicBase), "Background"));
     painter.drawRoundedRect(baseRect, d->_pBorderRadius, d->_pBorderRadius);
@@ -214,12 +213,12 @@ void ElaRollerPicker::paintEvent(QPaintEvent* event)
         auto roller = d->_rollerPickerContainer->_rollerList[i];
         painter.setPen(ElaThemeColor(d->_themeMode, BasicText));
         int rollerWidth = roller->width();
-        painter.drawText(QRect(rollerXOffset, baseRect.y(), rollerWidth, baseRect.height()), Qt::AlignCenter, roller->getCurrentData());
+        painter.drawText(QRect(rollerXOffset, 0, rollerWidth, height()), Qt::AlignCenter, roller->getCurrentData());
         rollerXOffset += rollerWidth;
         if (i != d->_rollerPickerContainer->_rollerList.count() - 1)
         {
             painter.setPen(ElaThemeColor(d->_themeMode, BasicBorder));
-            painter.drawLine(rollerXOffset, 0, rollerXOffset, baseRect.bottom());
+            painter.drawLine(QLineF(rollerXOffset, baseRect.top(), rollerXOffset, baseRect.bottom()));
         }
     }
     painter.restore();

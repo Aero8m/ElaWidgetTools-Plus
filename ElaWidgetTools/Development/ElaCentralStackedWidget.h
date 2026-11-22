@@ -3,7 +3,6 @@
 
 #include "ElaPropertyMacro.h"
 #include <QStackedWidget>
-#include <QElapsedTimer>
 #include <QPointer>
 
 #include "ElaWidgetToolsDef.h"
@@ -59,11 +58,10 @@ private:
     QPropertyAnimation* _popupAnimation{nullptr};
     QPointer<QWidget> _pendingPopupTarget;
     QPointer<QWidget> _popupTarget;
-    QElapsedTimer _lastPopupRequest;
     quint64 _popupRequestSerial{0};
     quint64 _pendingPopupSerial{0};
-    bool _pendingPopupAnimated{false};
     bool _popupActive{false};
+    bool _popupStartPending{false};
     QMetaObject::Connection _popupFinishedConnection;
     QMetaObject::Connection _popupDestroyedConnection;
     void _startPopupSwitch();

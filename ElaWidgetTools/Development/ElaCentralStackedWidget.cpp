@@ -14,6 +14,12 @@
 #include <QTimer>
 #include <cmath>
 
+namespace
+{
+constexpr int PopupSlideDistance = 180; // logical pixels
+constexpr int PopupFadeOutDuration = 50; // milliseconds
+}
+
 ElaCentralStackedWidget::ElaCentralStackedWidget(QWidget* parent)
     : QWidget(parent)
 {
@@ -49,8 +55,11 @@ ElaCentralStackedWidget::ElaCentralStackedWidget(QWidget* parent)
     _popupSwitchTimer->setSingleShot(true);
     connect(_popupSwitchTimer, &QTimer::timeout, this, &ElaCentralStackedWidget::_startPopupSwitch);
     _popupAnimation = new QPropertyAnimation(this, "pPopupAnimationYOffset", this);
-    _popupAnimation->setDuration(300);
-    _popupAnimation->setEasingCurve(QEasingCurve::OutQuart);
+    _popupAnimation->setDuration(250);
+    // Move most of the distance early and leave room for a slow settle.
+    QEasingCurve popupEasing(QEasingCurve::BezierSpline);
+    popupEasing.addCubicBezierSegment(QPointF(0.08, 0.66), QPointF(0.18, 0.96), QPointF(1, 1));
+    _popupAnimation->setEasingCurve(popupEasing);
     connect(_popupAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
         if (_popupActive) update();
     });
@@ -128,23 +137,19 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
         {
             return;
         }
-        const bool rapid = _popupActive || _pendingPopupTarget ||
-                           (_lastPopupRequest.isValid() && _lastPopupRequest.elapsed() < 200);
-        _lastPopupRequest.start();
+        const quint64 serial = _popupRequestSerial + 1;
         _finishPopupSwitch();
-        if (!target || _containerStackedWidget->indexOf(target) < 0) return;
+        // Restoring the previous page can synchronously request a newer switch.
+        if (serial != _popupRequestSerial || !target || _containerStackedWidget->indexOf(target) < 0) return;
         _stackSwitchMode = stackSwitchMode;
         _pLastTargetIndex = _containerStackedWidget->indexOf(target);
         _pendingPopupTarget = target;
-        _pendingPopupSerial = _popupRequestSerial;
-        _pendingPopupAnimated = !rapid;
-        const quint64 serial = _popupRequestSerial;
+        _pendingPopupSerial = serial;
         _popupDestroyedConnection = connect(target, &QObject::destroyed, this, [this, serial]() {
             if (serial == _popupRequestSerial) _finishPopupSwitch();
         });
-        // Keep the ordinary transition's pause. Rapid requests replace this
-        // pending task and settle immediately instead of queueing old pages.
-        _popupSwitchTimer->start(_pendingPopupAnimated ? 180 : 0);
+        // Coalesce requests made in the same event-loop turn.
+        _popupSwitchTimer->start(0);
         return;
     }
     _finishPopupSwitch();
@@ -172,7 +177,7 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
     }
     case ElaWindowType::Popup:
     {
-        // Handled above so rapid requests never enter another animation path.
+        // Handled by the cancellable timer above.
         break;
     }
     case ElaWindowType::Scale:
@@ -293,13 +298,15 @@ void ElaCentralStackedWidget::_startPopupSwitch()
 {
     const quint64 serial = _pendingPopupSerial;
     QPointer<QWidget> target = _pendingPopupTarget;
-    const bool animated = _pendingPopupAnimated && isVisible();
     if (serial != _popupRequestSerial) return;
     if (!target || _containerStackedWidget->indexOf(target) < 0)
     {
         _finishPopupSwitch();
         return;
     }
+    // Grab the outgoing page before setCurrentWidget() hides it.
+    const QPixmap outgoingSnapshot = isVisible() ? _containerStackedWidget->grab() : QPixmap();
+    if (serial != _popupRequestSerial || !target) return;
     _containerStackedWidget->setCurrentWidget(target);
     // A page's show handler may remove itself or request another page.
     if (serial != _popupRequestSerial) return;
@@ -310,7 +317,7 @@ void ElaCentralStackedWidget::_startPopupSwitch()
     }
     _pendingPopupTarget.clear();
     _pLastTargetIndex = _containerStackedWidget->currentIndex();
-    if (!animated)
+    if (!isVisible())
     {
         _finishPopupSwitch();
         return;
@@ -330,15 +337,19 @@ void ElaCentralStackedWidget::_startPopupSwitch()
         _finishPopupSwitch();
         return;
     }
+    _currentStackPix = outgoingSnapshot;
     target->hide();
     if (serial != _popupRequestSerial || !target) return;
     const int y = _containerStackedWidget->mapToParent(QPoint(0, 0)).y();
-    _popupAnimation->setStartValue(y + 120);
+    _pPopupAnimationYOffset = y + PopupSlideDistance;
+    _popupAnimation->setStartValue(_pPopupAnimationYOffset);
     _popupAnimation->setEndValue(y);
+    _popupAnimation->setCurrentTime(0);
     _popupFinishedConnection = connect(_popupAnimation, &QPropertyAnimation::finished, this, [this, serial]() {
         if (serial == _popupRequestSerial) _finishPopupSwitch();
     });
-    _popupAnimation->start();
+    _popupStartPending = true;
+    update();
 }
 
 void ElaCentralStackedWidget::_finishPopupSwitch(bool restorePage)
@@ -353,6 +364,7 @@ void ElaCentralStackedWidget::_finishPopupSwitch(bool restorePage)
     _pendingPopupTarget.clear();
     _popupTarget.clear();
     _popupActive = false;
+    _popupStartPending = false;
     if (ownedPopup)
     {
         _targetStackPix = QPixmap();
@@ -433,6 +445,22 @@ void ElaCentralStackedWidget::paintEvent(QPaintEvent* event)
         case ElaWindowType::Popup:
         {
             painter.drawPixmap(QRect(0, _pPopupAnimationYOffset, width(), _containerStackedWidget->height()), _targetStackPix);
+            const int elapsed = _popupAnimation->currentTime();
+            if (!_currentStackPix.isNull() && elapsed < PopupFadeOutDuration)
+            {
+                const qreal remaining = 1.0 - qreal(elapsed) / PopupFadeOutDuration;
+                painter.setOpacity(remaining * remaining);
+                painter.drawPixmap(centralStackRect, _currentStackPix);
+            }
+            if (_popupStartPending)
+            {
+                _popupStartPending = false;
+                const quint64 serial = _popupRequestSerial;
+                // Start the clock after painting the frame at the full offset.
+                QTimer::singleShot(0, this, [this, serial]() {
+                    if (serial == _popupRequestSerial) _popupAnimation->start();
+                });
+            }
             break;
         }
         case ElaWindowType::Scale:

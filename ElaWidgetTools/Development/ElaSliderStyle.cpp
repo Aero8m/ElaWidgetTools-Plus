@@ -5,6 +5,7 @@
 
 #include <QPainter>
 #include <QPropertyAnimation>
+#include <QSlider>
 #include <QStyleOptionSlider>
 
 ElaSliderStyle::ElaSliderStyle(QStyle* style)
@@ -42,11 +43,17 @@ void ElaSliderStyle::drawComplexControl(ComplexControl control, const QStyleOpti
         painter->setBrush(ElaColorAnimation::getColor(widget, ElaThemeColor(_themeMode, BasicIndicator), "Track"));
         if (sopt->orientation == Qt::Horizontal)
         {
-            // 未滑过
-            painter->drawRoundedRect(QRect(sliderRect.x() + sliderRect.height() / 8, sliderRect.y() + sliderRect.height() * 0.375, sliderRect.width() - sliderRect.height() / 4, sliderRect.height() / 4), sliderRect.height() / 8, sliderRect.height() / 8);
-            // 已滑过
+            const int trackHeight = pixelMetric(PM_SliderThickness, option, widget) / 4;
+            const int trackInset = trackHeight / 2;
+            const int trackWidth = qMax(0, sliderRect.width() - 2 * trackInset);
+            const QRectF track(sliderRect.x() + trackInset, sliderRect.y() + (sliderRect.height() - trackHeight) / 2.0,
+                               trackWidth, trackHeight);
+            const qreal radius = trackHeight / 2.0;
+            painter->drawRoundedRect(track, radius, radius);
             painter->setBrush(ElaColorAnimation::getColor(widget, ElaThemeColor(_themeMode, PrimaryNormal), "Progress"));
-            painter->drawRoundedRect(QRect(sliderRect.x() + sliderRect.height() / 8, sliderRect.y() + sliderRect.height() * 0.375, sliderHandleRect.x(), sliderRect.height() / 4), sliderRect.height() / 8, sliderRect.height() / 8);
+            QRectF progress = track;
+            progress.setRight(qBound(track.left(), qreal(sliderHandleRect.center().x()), track.right()));
+            painter->drawRoundedRect(progress, radius, radius);
         }
         else
         {
@@ -123,6 +130,20 @@ void ElaSliderStyle::drawComplexControl(ComplexControl control, const QStyleOpti
     }
     }
     QProxyStyle::drawComplexControl(control, option, painter, widget);
+}
+
+QSize ElaSliderStyle::sizeFromContents(ContentsType type, const QStyleOption* option, const QSize& size, const QWidget* widget) const
+{
+    QSize result = QProxyStyle::sizeFromContents(type, option, size, widget);
+    if (type == CT_Slider)
+    {
+        const auto* slider = qstyleoption_cast<const QStyleOptionSlider*>(option);
+        if (slider && slider->orientation == Qt::Horizontal && slider->tickPosition == QSlider::NoTicks)
+        {
+            result.setHeight(ElaWidgetToolsSize::DefaultControlHeight);
+        }
+    }
+    return result;
 }
 
 int ElaSliderStyle::pixelMetric(PixelMetric metric, const QStyleOption* option, const QWidget* widget) const

@@ -4,6 +4,7 @@
 #include "ElaColorAnimation.h"
 #include "ElaControlStyle.h"
 #include "ElaTheme.h"
+#include "ElaWidgetToolsDef.h"
 
 #include <QFontMetricsF>
 #include <QPainter>
@@ -13,7 +14,7 @@
 
 ElaTabBarStyle::ElaTabBarStyle(QStyle* style)
 {
-    _pTabSize = QSize(220, 35);
+    _pTabSize = QSize(220, ElaWidgetToolsSize::DefaultControlHeight);
     _pIsActive = true;
     _pIsPinned = false;
     _pIsTabWidthAdaptive = false;

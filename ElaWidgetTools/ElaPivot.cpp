@@ -5,6 +5,7 @@
 #include "ElaPivotPrivate.h"
 #include "ElaPivotStyle.h"
 #include "ElaPivotView.h"
+#include "ElaWidgetToolsDef.h"
 
 #include <QPainter>
 #include <QScroller>
@@ -16,7 +17,7 @@ ElaPivot::ElaPivot(QWidget* parent)
     Q_D(ElaPivot);
     d->q_ptr = this;
     d->_pTextPixelSize = eApp->getFontPixelSize() + 1;
-    setFixedHeight(35);
+    setFixedHeight(ElaWidgetToolsSize::DefaultControlHeight);
     setObjectName("ElaPivot");
     setStyleSheet("#ElaPivot{background-color:transparent;}");
     setMouseTracking(true);

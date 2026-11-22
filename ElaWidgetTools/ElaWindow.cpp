@@ -778,10 +778,6 @@ QMenu* ElaWindow::createPopupMenu()
             }
         }
     }
-    if (menu)
-    {
-        menu->setMenuItemHeight(28);
-    }
     return menu;
 }
 

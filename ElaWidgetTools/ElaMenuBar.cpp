@@ -22,7 +22,6 @@ ElaMenuBar::ElaMenuBar(QWidget* parent)
         QMenu* oldMenu = tool->menu();
         ElaMenu* menu = new ElaMenu(this);
         menu->setObjectName("ElaExtendMenu");
-        menu->setMenuItemHeight(27);
         if (oldMenu)
         {
             oldMenu->deleteLater();
@@ -35,18 +34,12 @@ ElaMenuBar::~ElaMenuBar() = default;
 
 QAction* ElaMenuBar::addMenu(QMenu* menu)
 {
-    ElaMenu* elaMenu = dynamic_cast<ElaMenu*>(menu);
-    if (elaMenu)
-    {
-        elaMenu->setMenuItemHeight(27);
-    }
     return QMenuBar::addMenu(menu);
 }
 
 ElaMenu* ElaMenuBar::addMenu(const QString& title)
 {
     ElaMenu* menu = new ElaMenu(title, this);
-    menu->setMenuItemHeight(27);
     QMenuBar::addAction(menu->menuAction());
     return menu;
 }
@@ -54,7 +47,6 @@ ElaMenu* ElaMenuBar::addMenu(const QString& title)
 ElaMenu* ElaMenuBar::addMenu(const QIcon& icon, const QString& title)
 {
     ElaMenu* menu = new ElaMenu(title, this);
-    menu->setMenuItemHeight(27);
     menu->setIcon(icon);
     QMenuBar::addAction(menu->menuAction());
     return menu;
@@ -63,7 +55,6 @@ ElaMenu* ElaMenuBar::addMenu(const QIcon& icon, const QString& title)
 ElaMenu* ElaMenuBar::addMenu(ElaIconType::IconName icon, const QString& title)
 {
     ElaMenu* menu = new ElaMenu(title, this);
-    menu->setMenuItemHeight(27);
     menu->menuAction()->setProperty("ElaIconType", QChar(static_cast<ushort>(icon)));
     menu->menuAction()->setIcon(ElaIcon::getInstance()->getElaIcon(ElaIconType::Broom, 1));
     QMenuBar::addAction(menu->menuAction());

@@ -38,7 +38,6 @@ ElaMenu* ElaDoubleSpinBoxPrivate::_createStandardContextMenu()
     Q_Q(ElaDoubleSpinBox);
     QLineEdit* lineEdit = q->lineEdit();
     ElaMenu* menu = new ElaMenu(q);
-    menu->setMenuItemHeight(27);
     menu->setAttribute(Qt::WA_DeleteOnClose);
     QAction* action = nullptr;
     if (!lineEdit->isReadOnly())

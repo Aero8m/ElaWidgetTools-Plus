@@ -37,7 +37,7 @@ ElaLineEdit::ElaLineEdit(QWidget* parent)
     lineEditStyle->setParent(this);
     setStyle(lineEditStyle);
     new ElaInputFocusAnimation(lineEditStyle, this);
-    setStyleSheet("#ElaLineEdit{background-color:transparent;padding-left: 10px;}");
+    setTextMargins(10, 0, 10, 0);
     d->onThemeChanged(eTheme->getThemeMode());
     connect(eTheme, &ElaTheme::themeModeChanged, d, &ElaLineEditPrivate::onThemeChanged);
     connect(this, &ElaLineEdit::pBorderRadiusChanged, this, [this]() {
@@ -106,7 +106,6 @@ void ElaLineEdit::paintEvent(QPaintEvent* event)
 void ElaLineEdit::contextMenuEvent(QContextMenuEvent* event)
 {
     ElaMenu* menu = new ElaMenu(this);
-    menu->setMenuItemHeight(27);
     menu->setAttribute(Qt::WA_DeleteOnClose);
     QAction* action = nullptr;
     if (!isReadOnly())

@@ -145,7 +145,7 @@ T_Popup::T_Popup(QWidget* parent)
     _colorDialog = new ElaColorDialog(this);
     auto* colorDialogButton = new ElaPushButton("选择颜色", this);
     auto* colorPreviewButton = new ElaPushButton(this);
-    colorPreviewButton->setFixedSize(40, 32);
+    colorPreviewButton->setFixedWidth(40);
     colorPreviewButton->setAccessibleName("当前颜色预览");
     auto* colorText = new ElaText(this);
     auto updateColor = [colorPreviewButton, colorText](const QColor& color) {
