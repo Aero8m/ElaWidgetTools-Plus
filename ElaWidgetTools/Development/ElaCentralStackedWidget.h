@@ -37,6 +37,9 @@ public:
 
     void doWindowStackSwitch(ElaWindowType::StackSwitchMode stackSwitchMode, int nodeIndex, bool isRouteBack);
 
+Q_SIGNALS:
+    void pageTransitionProgressChanged(const QString& pageKey, qreal progress);
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void hideEvent(QHideEvent* event) override;
@@ -58,6 +61,8 @@ private:
     QPropertyAnimation* _popupAnimation{nullptr};
     QPointer<QWidget> _pendingPopupTarget;
     QPointer<QWidget> _popupTarget;
+    QString _popupPageKey;
+    quint64 _pageTransitionSerial{0};
     quint64 _popupRequestSerial{0};
     quint64 _pendingPopupSerial{0};
     bool _popupActive{false};
@@ -67,6 +72,7 @@ private:
     void _startPopupSwitch();
     void _finishPopupSwitch(bool restorePage = true);
     void _settlePopupSwitch();
+    void _trackPageTransition(QPropertyAnimation* animation, const QString& pageKey, quint64 serial, qreal start, qreal end);
     void _getTargetStackPix();
     void _getCurrentStackPix();
 };

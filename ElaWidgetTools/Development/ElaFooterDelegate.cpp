@@ -28,9 +28,9 @@ ElaFooterDelegate::~ElaFooterDelegate()
 {
 }
 
-void ElaFooterDelegate::startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode)
+ElaNavigationMarkAnimation* ElaFooterDelegate::selectionAnimation() const
 {
-    _markAnimation->start(previousNode, selectedNode);
+    return _markAnimation;
 }
 
 void ElaFooterDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const

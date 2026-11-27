@@ -8,6 +8,7 @@
 #include <QPixmap>
 #include <QTreeView>
 class ElaScrollBar;
+class ElaNavigationMarkAnimation;
 class ElaNavigationStyle;
 class ElaToolTip;
 class QVariantAnimation;
@@ -20,7 +21,7 @@ public:
     ~ElaNavigationView() override;
     void setModel(QAbstractItemModel* model) override;
     void setNodeExpanded(ElaNavigationNode* node, bool isExpanded);
-    void startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode);
+    ElaNavigationMarkAnimation* selectionAnimation() const;
 
     Q_SLOT void onCustomContextMenuRequested(const QPoint& pos);
 Q_SIGNALS:

@@ -64,7 +64,6 @@ private:
     ElaNavigationType::NavigationDisplayMode _currentNavigationBarDisplayMode{ElaNavigationType::Maximal};
     QMap<QString, const QMetaObject*> _pageMetaMap;
     QMap<QString, QWidget*> _routeMap; // key__nodeKey title可以一致  value__Page
-    int _navigationTargetIndex{0};
     qreal _distance(QPoint point1, QPoint point2);
     void _resetWindowLayout(bool isAnimation);
     void _doNavigationDisplayModeChange();

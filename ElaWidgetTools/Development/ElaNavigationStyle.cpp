@@ -291,7 +291,7 @@ void ElaNavigationStyle::startExpandAnimation(ElaNavigationNode* node, bool isEx
     _rotateAnimation->start();
 }
 
-void ElaNavigationStyle::startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode)
+ElaNavigationMarkAnimation* ElaNavigationStyle::selectionAnimation() const
 {
-    _markAnimation->start(previousNode, selectedNode);
+    return _markAnimation;
 }

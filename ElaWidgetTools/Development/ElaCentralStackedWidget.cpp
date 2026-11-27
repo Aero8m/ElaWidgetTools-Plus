@@ -16,6 +16,7 @@
 
 namespace
 {
+constexpr int PopupStartDelay = 100; // milliseconds
 constexpr int PopupSlideDistance = 180; // logical pixels
 constexpr int PopupFadeOutDuration = 50; // milliseconds
 }
@@ -53,15 +54,27 @@ ElaCentralStackedWidget::ElaCentralStackedWidget(QWidget* parent)
 
     _popupSwitchTimer = new QTimer(this);
     _popupSwitchTimer->setSingleShot(true);
+    _popupSwitchTimer->setTimerType(Qt::PreciseTimer);
     connect(_popupSwitchTimer, &QTimer::timeout, this, &ElaCentralStackedWidget::_startPopupSwitch);
     _popupAnimation = new QPropertyAnimation(this, "pPopupAnimationYOffset", this);
-    _popupAnimation->setDuration(250);
+    _popupAnimation->setDuration(300);
     // Move most of the distance early and leave room for a slow settle.
     QEasingCurve popupEasing(QEasingCurve::BezierSpline);
-    popupEasing.addCubicBezierSegment(QPointF(0.08, 0.66), QPointF(0.18, 0.96), QPointF(1, 1));
+    popupEasing.addCubicBezierSegment(QPointF(0.10, 0.66), QPointF(0.22, 0.96), QPointF(1, 1));
     _popupAnimation->setEasingCurve(popupEasing);
     connect(_popupAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
-        if (_popupActive) update();
+        if (!_popupActive) return;
+        const int elapsed = _popupAnimation->currentTime();
+        const auto easing = _popupAnimation->easingCurve();
+        const qreal duration = _popupAnimation->duration();
+        // The marker changes rows when the outgoing snapshot has faded.
+        const qreal handoff = easing.valueForProgress(PopupFadeOutDuration / duration);
+        const qreal remaining = 1.0 - qreal(elapsed) / PopupFadeOutDuration;
+        const qreal progress = elapsed < PopupFadeOutDuration
+                                   ? 0.5 * (1.0 - remaining * remaining)
+                                   : 0.5 + 0.5 * (easing.valueForProgress(elapsed / duration) - handoff) / (1.0 - handoff);
+        emit pageTransitionProgressChanged(_popupPageKey, progress);
+        update();
     });
     connect(_containerStackedWidget, &QStackedWidget::widgetRemoved, this, [this]() {
         if ((_pendingPopupTarget && _containerStackedWidget->indexOf(_pendingPopupTarget) < 0) ||
@@ -130,10 +143,11 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
 {
     QPointer<QWidget> target = _containerStackedWidget->widget(nodeIndex);
     if (!target) return;
+    const QString pageKey = target->property("ElaPageKey").toString();
+    const quint64 transitionSerial = ++_pageTransitionSerial;
     if (stackSwitchMode == ElaWindowType::Popup)
     {
-        if (_pendingPopupTarget == target || _popupTarget == target ||
-            (!_popupSwitchTimer->isActive() && _containerStackedWidget->currentWidget() == target))
+        if (_pendingPopupTarget == target || _popupTarget == target)
         {
             return;
         }
@@ -143,13 +157,19 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
         if (serial != _popupRequestSerial || !target || _containerStackedWidget->indexOf(target) < 0) return;
         _stackSwitchMode = stackSwitchMode;
         _pLastTargetIndex = _containerStackedWidget->indexOf(target);
+        if (_containerStackedWidget->currentWidget() == target)
+        {
+            emit pageTransitionProgressChanged(pageKey, 1.0);
+            return;
+        }
         _pendingPopupTarget = target;
+        _popupPageKey = pageKey;
         _pendingPopupSerial = serial;
         _popupDestroyedConnection = connect(target, &QObject::destroyed, this, [this, serial]() {
             if (serial == _popupRequestSerial) _finishPopupSwitch();
         });
-        // Coalesce requests made in the same event-loop turn.
-        _popupSwitchTimer->start(0);
+        // Keep the outgoing page and its marker in place until the latest request starts.
+        _popupSwitchTimer->start(isVisible() ? PopupStartDelay : 0);
         return;
     }
     _finishPopupSwitch();
@@ -160,10 +180,12 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
         _stackSwitchMode = stackSwitchMode;
         _pLastTargetIndex = nodeIndex;
         _containerStackedWidget->setCurrentWidget(target);
+        emit pageTransitionProgressChanged(pageKey, 1.0);
         return;
     }
     if (_pLastTargetIndex == nodeIndex)
     {
+        emit pageTransitionProgressChanged(pageKey, 1.0);
         return;
     }
     _pLastTargetIndex = nodeIndex;
@@ -217,6 +239,7 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
             }
             targetPixZoomAnimation->setDuration(300);
             targetPixZoomAnimation->setEasingCurve(QEasingCurve::OutCubic);
+            _trackPageTransition(targetPixZoomAnimation, pageKey, transitionSerial, 0.5, 1.0);
             targetPixZoomAnimation->start(QAbstractAnimation::DeleteWhenStopped);
         });
         if (isRouteBack)
@@ -232,6 +255,7 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
             currentPixZoomAnimation->setEndValue(1.15);
         }
         currentPixZoomAnimation->setDuration(150);
+        _trackPageTransition(currentPixZoomAnimation, pageKey, transitionSerial, 0.0, 0.5);
         currentPixZoomAnimation->start(QAbstractAnimation::DeleteWhenStopped);
 
         QPropertyAnimation* currentPixOpacityAnimation = new QPropertyAnimation(this, "pScaleAnimationPixOpacity");
@@ -268,6 +292,7 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
         flipAnimation->setDuration(650);
         flipAnimation->setStartValue(0);
         flipAnimation->setEndValue(isRouteBack ? -180 : 180);
+        _trackPageTransition(flipAnimation, pageKey, transitionSerial, 0.0, 1.0);
         flipAnimation->start(QAbstractAnimation::DeleteWhenStopped);
         break;
     }
@@ -286,12 +311,27 @@ void ElaCentralStackedWidget::doWindowStackSwitch(ElaWindowType::StackSwitchMode
         blurAnimation->setDuration(350);
         blurAnimation->setStartValue(40);
         blurAnimation->setEndValue(2);
+        _trackPageTransition(blurAnimation, pageKey, transitionSerial, 0.5, 1.0);
         blurAnimation->start(QAbstractAnimation::DeleteWhenStopped);
         QApplication::processEvents();
         _containerStackedWidget->setCurrentIndex(nodeIndex);
         break;
     }
     }
+}
+
+void ElaCentralStackedWidget::_trackPageTransition(QPropertyAnimation* animation, const QString& pageKey, quint64 serial, qreal start, qreal end)
+{
+    if (pageKey.isEmpty()) return;
+    connect(animation, &QPropertyAnimation::valueChanged, this, [this, animation, pageKey, serial, start, end]() {
+        if (serial != _pageTransitionSerial) return;
+        const qreal time = qreal(animation->currentTime()) / animation->duration();
+        const qreal progress = start + (end - start) * animation->easingCurve().valueForProgress(time);
+        emit pageTransitionProgressChanged(pageKey, progress);
+    });
+    connect(animation, &QPropertyAnimation::finished, this, [this, pageKey, serial, end]() {
+        if (serial == _pageTransitionSerial) emit pageTransitionProgressChanged(pageKey, end);
+    });
 }
 
 void ElaCentralStackedWidget::_startPopupSwitch()
@@ -360,11 +400,17 @@ void ElaCentralStackedWidget::_finishPopupSwitch(bool restorePage)
     disconnect(_popupFinishedConnection);
     disconnect(_popupDestroyedConnection);
     _popupAnimation->stop();
+    const QString pageKey = _popupPageKey;
+    _popupPageKey.clear();
     QPointer<QWidget> target = _popupTarget;
     _pendingPopupTarget.clear();
     _popupTarget.clear();
     _popupActive = false;
     _popupStartPending = false;
+    if (restorePage && !pageKey.isEmpty())
+    {
+        emit pageTransitionProgressChanged(pageKey, 1.0);
+    }
     if (ownedPopup)
     {
         _targetStackPix = QPixmap();

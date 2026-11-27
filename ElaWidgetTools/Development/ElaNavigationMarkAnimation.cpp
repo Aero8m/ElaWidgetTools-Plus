@@ -26,7 +26,7 @@ ElaNavigationMarkAnimation::ElaNavigationMarkAnimation(QWidget* viewport, bool i
     });
 }
 
-void ElaNavigationMarkAnimation::start(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode)
+void ElaNavigationMarkAnimation::start(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode, bool followPageTransition)
 {
     if (previousNode == selectedNode)
     {
@@ -36,20 +36,51 @@ void ElaNavigationMarkAnimation::start(ElaNavigationNode* previousNode, ElaNavig
     _previousNode = previousNode;
     _isUpward = !selectedNode ? _isFooter : !previousNode ? !_isFooter
                                                           : _getIsAbove(selectedNode, previousNode);
-    _animation->start();
+    if (followPageTransition)
+    {
+        setPageTransitionProgress(0.0);
+    }
+    else
+    {
+        _pageTransitionProgress = 1.0;
+        _animation->start();
+    }
+}
+
+void ElaNavigationMarkAnimation::setPageTransitionProgress(qreal progress)
+{
+    if (_pageTransitionProgress == progress)
+    {
+        return;
+    }
+    _pageTransitionProgress = progress;
+    if (progress >= 1.0)
+    {
+        _previousNode.clear();
+    }
+    if (_viewport)
+    {
+        _viewport->update();
+    }
+}
+
+ElaNavigationNode* ElaNavigationMarkAnimation::displayedNode(ElaNavigationNode* selectedNode) const
+{
+    return _pageTransitionProgress < 0.5 ? _previousNode.data() : selectedNode;
 }
 
 void ElaNavigationMarkAnimation::paint(QPainter* painter, const QRect& itemRect, ElaNavigationNode* node, bool isSelected, const QColor& color) const
 {
-    const qreal progress = _animation->state() != QAbstractAnimation::Stopped ? _animation->currentValue().toReal() : 2.0;
+    const bool standalone = _animation->state() != QAbstractAnimation::Stopped;
+    const qreal progress = standalone ? _animation->currentValue().toReal() : 2.0 * _pageTransitionProgress;
     const bool isPrevious = progress < 1.0 && node == _previousNode;
     if (!isPrevious && !(isSelected && progress >= 1.0))
     {
         return;
     }
     const qreal margin = _isFooter ? 10.0 : 10.5;
-    // 两段分别使用原有 300 ms 缓动，保留旧标记延伸、新标记收拢的节奏
-    const qreal eased = QEasingCurve(QEasingCurve::InOutSine).valueForProgress(isPrevious ? progress : progress - 1.0);
+    const qreal phase = isPrevious ? progress : progress - 1.0;
+    const qreal eased = standalone ? QEasingCurve(QEasingCurve::InOutSine).valueForProgress(phase) : phase;
     const qreal animatedMargin = margin * (isPrevious ? 1.0 - eased : eased);
     const bool isTopAnimated = isPrevious ? _isUpward : !_isUpward;
     const qreal top = isTopAnimated ? animatedMargin : margin;

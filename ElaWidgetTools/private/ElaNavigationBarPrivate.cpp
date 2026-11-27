@@ -12,6 +12,7 @@
 #include "ElaInteractiveCard.h"
 #include "ElaMenu.h"
 #include "ElaNavigationBar.h"
+#include "ElaNavigationMarkAnimation.h"
 #include "ElaNavigationModel.h"
 #include "ElaNavigationNode.h"
 #include "ElaNavigationRouteCommand.h"
@@ -125,7 +126,7 @@ void ElaNavigationBarPrivate::_activatePage(ElaNavigationNode* node, bool isLogR
     }
     if (hasPage)
     {
-        _setSelectedNode(node);
+        _setSelectedNode(node, _followPageTransitions && previousNode != node);
     }
     if (isScrollToNode)
     {
@@ -156,6 +157,12 @@ ElaNavigationNode* ElaNavigationBarPrivate::_getSelectedNode() const
     return _navigationModel->getSelectedNode() ? _navigationModel->getSelectedNode() : _footerModel->getSelectedNode();
 }
 
+bool ElaNavigationBarPrivate::_isSelectedPage(const QString& pageKey) const
+{
+    const auto* node = _getSelectedNode();
+    return node && node->getNodeKey() == pageKey;
+}
+
 ElaNavigationNode* ElaNavigationBarPrivate::_getVisibleNode(ElaNavigationNode* node) const
 {
     if (!node || node->getIsFooterNode())
@@ -173,7 +180,7 @@ ElaNavigationNode* ElaNavigationBarPrivate::_getVisibleNode(ElaNavigationNode* n
     return node;
 }
 
-void ElaNavigationBarPrivate::_setSelectedNode(ElaNavigationNode* node)
+void ElaNavigationBarPrivate::_setSelectedNode(ElaNavigationNode* node, bool followPageTransition)
 {
     ElaNavigationNode* previousMainNode = _navigationModel->getSelectedExpandedNode() ? _navigationModel->getSelectedExpandedNode() : _navigationModel->getSelectedNode();
     ElaNavigationNode* previousFooterNode = _footerModel->getSelectedNode();
@@ -185,8 +192,25 @@ void ElaNavigationBarPrivate::_setSelectedNode(ElaNavigationNode* node)
     _footerModel->setSelectedNode(footerNode);
     _updateSelection(_navigationView, visibleNode);
     _updateSelection(_footerView, footerNode);
-    _startSelectionAnimation(previousMainNode, visibleNode, false);
-    _startSelectionAnimation(previousFooterNode, footerNode, true);
+    if (!followPageTransition && previousMainNode == visibleNode && previousFooterNode == footerNode)
+    {
+        return;
+    }
+    auto* mainMark = _navigationView->selectionAnimation();
+    auto* footerMark = _footerDelegate->selectionAnimation();
+    if (followPageTransition && !_pageTransitionKey.isEmpty())
+    {
+        // Same-turn requests can replace a page before either view has painted it.
+        previousMainNode = mainMark->displayedNode(previousMainNode);
+        previousFooterNode = footerMark->displayedNode(previousFooterNode);
+    }
+    _updatePageTransition(_pageTransitionKey, 1.0);
+    if (followPageTransition && (previousMainNode != visibleNode || previousFooterNode != footerNode))
+    {
+        _pageTransitionKey = node->getNodeKey();
+    }
+    mainMark->start(previousMainNode, visibleNode, followPageTransition);
+    footerMark->start(previousFooterNode, footerNode, followPageTransition);
 }
 
 void ElaNavigationBarPrivate::_updateSelection(QAbstractItemView* view, ElaNavigationNode* node)
@@ -205,19 +229,18 @@ void ElaNavigationBarPrivate::_updateSelection(QAbstractItemView* view, ElaNavig
     }
 }
 
-void ElaNavigationBarPrivate::_startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode, bool isFooter)
+void ElaNavigationBarPrivate::_updatePageTransition(const QString& pageKey, qreal progress)
 {
-    if (previousNode != selectedNode)
+    if (pageKey.isEmpty() || pageKey != _pageTransitionKey)
     {
-        if (isFooter)
-        {
-            _footerDelegate->startSelectionAnimation(previousNode, selectedNode);
-        }
-        else
-        {
-            _navigationView->startSelectionAnimation(previousNode, selectedNode);
-        }
+        return;
     }
+    if (progress >= 1.0)
+    {
+        _pageTransitionKey.clear();
+    }
+    _navigationView->selectionAnimation()->setPageTransitionProgress(progress);
+    _footerDelegate->selectionAnimation()->setPageTransitionProgress(progress);
 }
 
 bool ElaNavigationBarPrivate::eventFilter(QObject* watched, QEvent* event)

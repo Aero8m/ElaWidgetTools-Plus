@@ -196,11 +196,10 @@ void ElaWindowPrivate::onNavigationNodeClicked(ElaNavigationType::NavigationNode
         return;
     }
     int nodeIndex = _navigationCenterStackedWidget->getContainerStackedWidget()->indexOf(page);
-    if (_navigationTargetIndex == nodeIndex || _navigationCenterStackedWidget->getContainerStackedWidget()->count() <= nodeIndex)
+    if (nodeIndex < 0)
     {
         return;
     }
-    _navigationTargetIndex = nodeIndex;
     _navigationCenterStackedWidget->doWindowStackSwitch(_pStackSwitchMode, nodeIndex, isRouteBack);
 }
 

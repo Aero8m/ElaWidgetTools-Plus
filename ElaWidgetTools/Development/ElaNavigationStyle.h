@@ -24,7 +24,7 @@ public:
     QSize sizeFromContents(ContentsType type, const QStyleOption* option, const QSize& size, const QWidget* widget) const override;
 
     void startExpandAnimation(ElaNavigationNode* node, bool isExpanded);
-    void startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode);
+    ElaNavigationMarkAnimation* selectionAnimation() const;
 
 private:
     ElaThemeType::ThemeMode _themeMode;

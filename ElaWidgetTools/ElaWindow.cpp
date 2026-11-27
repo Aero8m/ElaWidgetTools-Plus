@@ -54,6 +54,8 @@ ElaWindow::ElaWindow(QWidget* parent)
     connect(d->_appBar, &ElaAppBar::closeButtonClicked, this, &ElaWindow::closeButtonClicked);
     // 导航栏
     d->_navigationBar = new ElaNavigationBar(this);
+    auto* navigation = d->_navigationBar->d_func();
+    navigation->_followPageTransitions = true;
     connect(d->_navigationBar, &ElaNavigationBar::pNavigationBarWidthChanged, this, &ElaWindow::pNavigationBarWidthChanged);
     d->_navigationBar->setUserInfoCardVisible(false);
     // 返回按钮状态变更
@@ -64,7 +66,14 @@ ElaWindow::ElaWindow(QWidget* parent)
     // 转发点击信号
     connect(d->_navigationBar, &ElaNavigationBar::navigationNodeClicked, this, &ElaWindow::navigationNodeClicked);
     // 跳转处理
-    connect(d->_navigationBar, &ElaNavigationBar::navigationNodeClicked, d, &ElaWindowPrivate::onNavigationNodeClicked);
+    connect(d->_navigationBar, &ElaNavigationBar::navigationNodeClicked, d,
+            [d, navigation](ElaNavigationType::NavigationNodeType type, const QString& pageKey, bool isRouteBack) {
+        // A listener on the forwarded signal can navigate to another page.
+        if (navigation->_isSelectedPage(pageKey))
+        {
+            d->onNavigationNodeClicked(type, pageKey, isRouteBack);
+        }
+    });
     // 新增窗口
     connect(d->_navigationBar, &ElaNavigationBar::navigationNodeAdded, d, &ElaWindowPrivate::onNavigationNodeAdded);
     // 移除窗口
@@ -74,6 +83,8 @@ ElaWindow::ElaWindow(QWidget* parent)
 
     // 导航中心堆栈窗口
     d->_navigationCenterStackedWidget = new ElaCentralStackedWidget(this);
+    connect(d->_navigationCenterStackedWidget, &ElaCentralStackedWidget::pageTransitionProgressChanged,
+            navigation, &ElaNavigationBarPrivate::_updatePageTransition);
     d->_navigationCenterStackedWidget->setContentsMargins(0, 0, 0, 0);
     QWidget* navigationCentralWidget = new QWidget(this);
     navigationCentralWidget->setObjectName("ElaWindowNavigationCentralWidget");

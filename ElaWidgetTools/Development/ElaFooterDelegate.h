@@ -17,7 +17,7 @@ class ElaFooterDelegate : public QStyledItemDelegate
 public:
     explicit ElaFooterDelegate(ElaBaseListView* listView, QObject* parent = nullptr);
     ~ElaFooterDelegate();
-    void startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode);
+    ElaNavigationMarkAnimation* selectionAnimation() const;
 
 protected:
     void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;

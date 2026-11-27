@@ -149,9 +149,9 @@ void ElaNavigationView::setNodeExpanded(ElaNavigationNode* node, bool isExpanded
     _expandAnimation->start();
 }
 
-void ElaNavigationView::startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode)
+ElaNavigationMarkAnimation* ElaNavigationView::selectionAnimation() const
 {
-    _navigationStyle->startSelectionAnimation(previousNode, selectedNode);
+    return _navigationStyle->selectionAnimation();
 }
 
 void ElaNavigationView::paintEvent(QPaintEvent* event)

@@ -16,7 +16,9 @@ class ElaNavigationMarkAnimation : public QObject
     Q_OBJECT
 public:
     explicit ElaNavigationMarkAnimation(QWidget* viewport, bool isFooter, QObject* parent);
-    void start(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode);
+    void start(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode, bool followPageTransition);
+    void setPageTransitionProgress(qreal progress);
+    ElaNavigationNode* displayedNode(ElaNavigationNode* selectedNode) const;
     void paint(QPainter* painter, const QRect& itemRect, ElaNavigationNode* node, bool isSelected, const QColor& color) const;
 
 private:
@@ -24,6 +26,7 @@ private:
     QPointer<QWidget> _viewport;
     QPointer<ElaNavigationNode> _previousNode;
     QVariantAnimation* _animation{nullptr};
+    qreal _pageTransitionProgress{1.0};
     bool _isFooter{false};
     bool _isUpward{false};
 };

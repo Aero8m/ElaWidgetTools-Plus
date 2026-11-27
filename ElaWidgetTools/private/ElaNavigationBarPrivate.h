@@ -48,6 +48,7 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    friend class ElaWindow;
     friend class ElaNavigationView;
     ElaThemeType::ThemeMode _themeMode;
     QList<ElaSuggestBox::SuggestData> _suggestDataList;
@@ -74,16 +75,19 @@ private:
     QTimer* _scrollTimer{nullptr};
     QPropertyAnimation* _scrollAnimation{nullptr};
     QVariantAnimation* _navigationBarWidthAnimation{nullptr};
+    bool _followPageTransitions{false};
+    QString _pageTransitionKey;
 
     ElaNavigationType::NavigationDisplayMode _currentDisplayMode{ElaNavigationType::NavigationDisplayMode::Maximal};
     void _initNodeModelIndex(const QModelIndex& parentIndex);
     void _resetNodeSelected();
     void _activatePage(ElaNavigationNode* node, bool isLogRoute, bool isRouteBack, bool isScrollToNode);
     ElaNavigationNode* _getSelectedNode() const;
+    bool _isSelectedPage(const QString& pageKey) const;
     ElaNavigationNode* _getVisibleNode(ElaNavigationNode* node) const;
-    void _setSelectedNode(ElaNavigationNode* node);
+    void _setSelectedNode(ElaNavigationNode* node, bool followPageTransition = false);
     static void _updateSelection(QAbstractItemView* view, ElaNavigationNode* node);
-    void _startSelectionAnimation(ElaNavigationNode* previousNode, ElaNavigationNode* selectedNode, bool isFooter);
+    void _updatePageTransition(const QString& pageKey, qreal progress);
     void _ensureNodeVisible(ElaNavigationNode* node);
     void _setNodeExpanded(ElaNavigationNode* node, bool isExpanded);
     void _updateCategoryVisibility();

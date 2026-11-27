@@ -14,6 +14,7 @@ class ELA_EXPORT ElaNavigationBar : public QWidget
     ELA_PIMPL_Q(ElaNavigationBar)
     ELA_PROPERTY_Q_H(bool, IsTransparent)
     ELA_PROPERTY_Q_H(bool, IsAllowPageOpenInNewWindow)
+    friend class ElaWindow;
 public:
     explicit ElaNavigationBar(QWidget* parent = nullptr);
     ~ElaNavigationBar() override;
