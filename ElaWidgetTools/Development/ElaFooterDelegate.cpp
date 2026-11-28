@@ -5,7 +5,7 @@
 #include "ElaColorAnimation.h"
 #include "ElaControlStyle.h"
 #include "ElaFooterModel.h"
-#include "ElaNavigationMarkAnimation.h"
+#include "ElaNavigationIndicator.h"
 #include "ElaNavigationNode.h"
 #include "ElaTheme.h"
 #include "ElaWidgetToolsDef.h"
@@ -17,7 +17,7 @@
 ElaFooterDelegate::ElaFooterDelegate(ElaBaseListView* listView, QObject* parent)
     : QStyledItemDelegate{parent}
 {
-    _markAnimation = new ElaNavigationMarkAnimation(listView->viewport(), true, this);
+    Q_UNUSED(listView)
     _themeMode = eTheme->getThemeMode();
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this](ElaThemeType::ThemeMode themeMode) {
         _themeMode = themeMode;
@@ -28,9 +28,9 @@ ElaFooterDelegate::~ElaFooterDelegate()
 {
 }
 
-ElaNavigationMarkAnimation* ElaFooterDelegate::selectionAnimation() const
+void ElaFooterDelegate::setNavigationIndicator(ElaNavigationIndicator* indicator)
 {
-    return _markAnimation;
+    _indicator = indicator;
 }
 
 void ElaFooterDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -72,7 +72,15 @@ void ElaFooterDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
         painter->restore();
     }
 
-    _markAnimation->paint(painter, itemRect, node, node == model->getSelectedNode(), ElaThemeColor(_themeMode, PrimaryNormal));
+    if ((!_indicator || !_indicator->isActive()) && node == model->getSelectedNode())
+    {
+        painter->save();
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(ElaThemeColor(_themeMode, PrimaryNormal));
+        constexpr qreal margin = 10.0;
+        painter->drawRoundedRect(QRectF(itemRect.x() + 3, itemRect.y() + margin, 3, itemRect.height() - 2.0 * margin), 1.5, 1.5);
+        painter->restore();
+    }
     if (itemRect.width() <= _iconAreaWidth + _indicatorIconAreaWidth)
     {
         painter->restore();

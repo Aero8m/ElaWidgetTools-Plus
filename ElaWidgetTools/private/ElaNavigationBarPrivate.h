@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QPersistentModelIndex>
 #include <QPointer>
+#include <QRectF>
 class QWidget;
 class QAbstractItemView;
 class QPropertyAnimation;
@@ -17,6 +18,7 @@ class ElaMenu;
 class QVBoxLayout;
 
 class ElaNavigationBar;
+class ElaNavigationIndicator;
 class ElaNavigationNode;
 class ElaNavigationModel;
 class ElaNavigationView;
@@ -75,8 +77,7 @@ private:
     QTimer* _scrollTimer{nullptr};
     QPropertyAnimation* _scrollAnimation{nullptr};
     QVariantAnimation* _navigationBarWidthAnimation{nullptr};
-    bool _followPageTransitions{false};
-    QString _pageTransitionKey;
+    ElaNavigationIndicator* _navigationIndicator{nullptr};
 
     ElaNavigationType::NavigationDisplayMode _currentDisplayMode{ElaNavigationType::NavigationDisplayMode::Maximal};
     void _initNodeModelIndex(const QModelIndex& parentIndex);
@@ -85,9 +86,9 @@ private:
     ElaNavigationNode* _getSelectedNode() const;
     bool _isSelectedPage(const QString& pageKey) const;
     ElaNavigationNode* _getVisibleNode(ElaNavigationNode* node) const;
-    void _setSelectedNode(ElaNavigationNode* node, bool followPageTransition = false);
+    QRectF _indicatorRect(ElaNavigationNode* node, bool clampToViewport) const;
+    void _setSelectedNode(ElaNavigationNode* node, bool isAnimation = false);
     static void _updateSelection(QAbstractItemView* view, ElaNavigationNode* node);
-    void _updatePageTransition(const QString& pageKey, qreal progress);
     void _ensureNodeVisible(ElaNavigationNode* node);
     void _setNodeExpanded(ElaNavigationNode* node, bool isExpanded);
     void _updateCategoryVisibility();

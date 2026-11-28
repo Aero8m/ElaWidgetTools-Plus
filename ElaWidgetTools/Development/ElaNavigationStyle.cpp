@@ -3,7 +3,7 @@
 #include "ElaApplication.h"
 #include "ElaColorAnimation.h"
 #include "ElaControlStyle.h"
-#include "ElaNavigationMarkAnimation.h"
+#include "ElaNavigationIndicator.h"
 #include "ElaNavigationModel.h"
 #include "ElaNavigationNode.h"
 #include "ElaNavigationView.h"
@@ -22,7 +22,6 @@ ElaNavigationStyle::ElaNavigationStyle(ElaNavigationView* navigationView)
     setParent(navigationView);
     _pRotate = 0;
     _pItemHeight = ElaWidgetToolsSize::DefaultListItemHeight;
-    _markAnimation = new ElaNavigationMarkAnimation(navigationView->viewport(), false, this);
     _rotateAnimation = new QPropertyAnimation(this, "pRotate", this);
     _rotateAnimation->setDuration(150);
     QEasingCurve easing(QEasingCurve::BezierSpline);
@@ -114,7 +113,16 @@ void ElaNavigationStyle::drawControl(ControlElement element, const QStyleOption*
             ElaNavigationNode* node = static_cast<ElaNavigationNode*>(vopt->index.internalPointer());
             ElaNavigationModel* model = dynamic_cast<ElaNavigationModel*>(const_cast<QAbstractItemModel*>(vopt->index.model()));
 
-            _markAnimation->paint(painter, itemRect, node, node == model->getSelectedNode() || node == model->getSelectedExpandedNode(), ElaThemeColor(_themeMode, PrimaryNormal));
+            if ((!_indicator || !_indicator->isActive())
+                && (node == model->getSelectedNode() || node == model->getSelectedExpandedNode()))
+            {
+                painter->save();
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(ElaThemeColor(_themeMode, PrimaryNormal));
+                constexpr qreal margin = 10.5;
+                painter->drawRoundedRect(QRectF(itemRect.x() + 3, itemRect.y() + margin, 3, itemRect.height() - 2.0 * margin), 1.5, 1.5);
+                painter->restore();
+            }
 
             // 图标绘制
             painter->setPen(vopt->index == _pPressIndex ? ElaThemeColor(_themeMode, BasicTextNoFocus) : ElaThemeColor(_themeMode, BasicText));
@@ -291,7 +299,7 @@ void ElaNavigationStyle::startExpandAnimation(ElaNavigationNode* node, bool isEx
     _rotateAnimation->start();
 }
 
-ElaNavigationMarkAnimation* ElaNavigationStyle::selectionAnimation() const
+void ElaNavigationStyle::setNavigationIndicator(ElaNavigationIndicator* indicator)
 {
-    return _markAnimation;
+    _indicator = indicator;
 }

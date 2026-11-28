@@ -12,7 +12,7 @@
 #include "ElaInteractiveCard.h"
 #include "ElaMenu.h"
 #include "ElaNavigationBar.h"
-#include "ElaNavigationMarkAnimation.h"
+#include "ElaNavigationIndicator.h"
 #include "ElaNavigationModel.h"
 #include "ElaNavigationNode.h"
 #include "ElaNavigationRouteCommand.h"
@@ -126,7 +126,7 @@ void ElaNavigationBarPrivate::_activatePage(ElaNavigationNode* node, bool isLogR
     }
     if (hasPage)
     {
-        _setSelectedNode(node, _followPageTransitions && previousNode != node);
+        _setSelectedNode(node, previousNode != node);
     }
     if (isScrollToNode)
     {
@@ -180,8 +180,65 @@ ElaNavigationNode* ElaNavigationBarPrivate::_getVisibleNode(ElaNavigationNode* n
     return node;
 }
 
-void ElaNavigationBarPrivate::_setSelectedNode(ElaNavigationNode* node, bool followPageTransition)
+QRectF ElaNavigationBarPrivate::_indicatorRect(ElaNavigationNode* node, bool clampToViewport) const
 {
+    Q_Q(const ElaNavigationBar);
+    if (!node)
+    {
+        return {};
+    }
+    const QModelIndex index = node->getModelIndex();
+    if (!index.isValid())
+    {
+        return {};
+    }
+    if (node->getIsFooterNode())
+    {
+        const QRect itemRect = _footerView->visualRect(index);
+        if (!itemRect.isValid() || itemRect.isEmpty())
+        {
+            return {};
+        }
+        const QRect vpRect = _footerView->viewport()->rect();
+        if (!vpRect.intersects(itemRect))
+        {
+            return {};
+        }
+        const QPoint topLeft = _footerView->viewport()->mapTo(q, itemRect.topLeft());
+        constexpr qreal margin = 10.0;
+        return QRectF(topLeft.x() + 3, topLeft.y() + margin, 3.0, itemRect.height() - 2.0 * margin);
+    }
+    if (_navigationView->isRowHidden(index.row(), index.parent()))
+    {
+        return {};
+    }
+    const QRect itemRect = _navigationView->visualRect(index);
+    if (!itemRect.isValid() || itemRect.isEmpty())
+    {
+        return {};
+    }
+    const QRect vpRect = _navigationView->viewport()->rect();
+    constexpr qreal margin = 10.5;
+    const qreal height = itemRect.height() - 2.0 * margin;
+    if (!vpRect.intersects(itemRect))
+    {
+        if (!clampToViewport || vpRect.isEmpty())
+        {
+            return {};
+        }
+        const int clampedY = itemRect.bottom() < vpRect.top()
+                                 ? vpRect.top()
+                                 : vpRect.bottom() - itemRect.height() + 1;
+        const QPoint topLeft = _navigationView->viewport()->mapTo(q, QPoint(itemRect.x(), clampedY));
+        return QRectF(topLeft.x() + 3, topLeft.y() + margin, 3.0, height);
+    }
+    const QPoint topLeft = _navigationView->viewport()->mapTo(q, itemRect.topLeft());
+    return QRectF(topLeft.x() + 3, topLeft.y() + margin, 3.0, height);
+}
+
+void ElaNavigationBarPrivate::_setSelectedNode(ElaNavigationNode* node, bool isAnimation)
+{
+    Q_Q(ElaNavigationBar);
     ElaNavigationNode* previousMainNode = _navigationModel->getSelectedExpandedNode() ? _navigationModel->getSelectedExpandedNode() : _navigationModel->getSelectedNode();
     ElaNavigationNode* previousFooterNode = _footerModel->getSelectedNode();
     ElaNavigationNode* mainNode = node && !node->getIsFooterNode() ? node : nullptr;
@@ -192,25 +249,28 @@ void ElaNavigationBarPrivate::_setSelectedNode(ElaNavigationNode* node, bool fol
     _footerModel->setSelectedNode(footerNode);
     _updateSelection(_navigationView, visibleNode);
     _updateSelection(_footerView, footerNode);
-    if (!followPageTransition && previousMainNode == visibleNode && previousFooterNode == footerNode)
+    if (previousMainNode == visibleNode && previousFooterNode == footerNode)
     {
         return;
     }
-    auto* mainMark = _navigationView->selectionAnimation();
-    auto* footerMark = _footerDelegate->selectionAnimation();
-    if (followPageTransition && !_pageTransitionKey.isEmpty())
+    if (!_navigationIndicator)
     {
-        // Same-turn requests can replace a page before either view has painted it.
-        previousMainNode = mainMark->displayedNode(previousMainNode);
-        previousFooterNode = footerMark->displayedNode(previousFooterNode);
+        return;
     }
-    _updatePageTransition(_pageTransitionKey, 1.0);
-    if (followPageTransition && (previousMainNode != visibleNode || previousFooterNode != footerNode))
+    if (!isAnimation || !q->isVisible() || _currentDisplayMode == ElaNavigationType::Minimal || !ElaColorAnimation::getIsAnimationEnabled(q))
     {
-        _pageTransitionKey = node->getNodeKey();
+        _navigationIndicator->stopAnimation();
+        _navigationView->viewport()->update();
+        _footerView->viewport()->update();
+        return;
     }
-    mainMark->start(previousMainNode, visibleNode, followPageTransition);
-    footerMark->start(previousFooterNode, footerNode, followPageTransition);
+    ElaNavigationNode* previousVisibleNode = previousMainNode ? previousMainNode : previousFooterNode;
+    ElaNavigationNode* nextVisibleNode = visibleNode ? visibleNode : footerNode;
+    const QRectF endRect = _indicatorRect(nextVisibleNode, false);
+    const QRectF startRect = _navigationIndicator->isActive() ? QRectF() : _indicatorRect(previousVisibleNode, true);
+    _navigationIndicator->startAnimation(startRect, endRect);
+    _navigationView->viewport()->update();
+    _footerView->viewport()->update();
 }
 
 void ElaNavigationBarPrivate::_updateSelection(QAbstractItemView* view, ElaNavigationNode* node)
@@ -229,20 +289,6 @@ void ElaNavigationBarPrivate::_updateSelection(QAbstractItemView* view, ElaNavig
     }
 }
 
-void ElaNavigationBarPrivate::_updatePageTransition(const QString& pageKey, qreal progress)
-{
-    if (pageKey.isEmpty() || pageKey != _pageTransitionKey)
-    {
-        return;
-    }
-    if (progress >= 1.0)
-    {
-        _pageTransitionKey.clear();
-    }
-    _navigationView->selectionAnimation()->setPageTransitionProgress(progress);
-    _footerDelegate->selectionAnimation()->setPageTransitionProgress(progress);
-}
-
 bool ElaNavigationBarPrivate::eventFilter(QObject* watched, QEvent* event)
 {
     switch (event->type())
@@ -251,9 +297,18 @@ bool ElaNavigationBarPrivate::eventFilter(QObject* watched, QEvent* event)
     case QEvent::ApplicationFontChange:
     case QEvent::FontChange:
     case QEvent::StyleChange:
+    case QEvent::Move:
     case QEvent::Resize:
     {
-        if (watched == q_ptr || watched == q_ptr->window() || event->type() != QEvent::Resize)
+        if (watched == q_ptr && event->type() == QEvent::Resize && _navigationIndicator)
+        {
+            _navigationIndicator->setGeometry(q_ptr->rect());
+        }
+        if ((watched == _navigationView || watched == _footerView) && (event->type() == QEvent::Resize || event->type() == QEvent::Move) && _navigationIndicator)
+        {
+            _navigationIndicator->stopAnimation();
+        }
+        if (watched == q_ptr || watched == q_ptr->window() || (event->type() != QEvent::Resize && event->type() != QEvent::Move))
         {
             _scheduleNavigationBarWidthUpdate();
         }
@@ -461,6 +516,10 @@ void ElaNavigationBarPrivate::_scrollToPendingNode()
 
 void ElaNavigationBarPrivate::_doComponentAnimation(ElaNavigationType::NavigationDisplayMode displayMode, bool isAnimation)
 {
+    if (_navigationIndicator)
+    {
+        _navigationIndicator->stopAnimation();
+    }
     const bool wasMaximal = _currentDisplayMode == ElaNavigationType::Maximal;
     const bool isMaximal = displayMode == ElaNavigationType::Maximal;
     _currentDisplayMode = displayMode;

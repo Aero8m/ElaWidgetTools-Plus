@@ -3,11 +3,12 @@
 
 #include "ElaPropertyMacro.h"
 #include <QModelIndex>
+#include <QPointer>
 #include <QStyledItemDelegate>
 
 #include "ElaWidgetToolsDef.h"
 class ElaNavigationNode;
-class ElaNavigationMarkAnimation;
+class ElaNavigationIndicator;
 class ElaBaseListView;
 class ElaFooterDelegate : public QStyledItemDelegate
 {
@@ -17,7 +18,7 @@ class ElaFooterDelegate : public QStyledItemDelegate
 public:
     explicit ElaFooterDelegate(ElaBaseListView* listView, QObject* parent = nullptr);
     ~ElaFooterDelegate();
-    ElaNavigationMarkAnimation* selectionAnimation() const;
+    void setNavigationIndicator(ElaNavigationIndicator* indicator);
 
 protected:
     void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
@@ -29,7 +30,7 @@ private:
     int _textRightSpacing{3};
     int _indicatorIconAreaWidth{24};
     ElaThemeType::ThemeMode _themeMode;
-    ElaNavigationMarkAnimation* _markAnimation{nullptr};
+    QPointer<ElaNavigationIndicator> _indicator;
 };
 
 #endif // ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELAFOOTERDELEGATE_H_

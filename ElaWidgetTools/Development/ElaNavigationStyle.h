@@ -7,7 +7,7 @@
 
 #include "ElaWidgetToolsDef.h"
 class ElaNavigationNode;
-class ElaNavigationMarkAnimation;
+class ElaNavigationIndicator;
 class ElaNavigationView;
 class QPropertyAnimation;
 class ElaNavigationStyle : public QProxyStyle
@@ -24,12 +24,12 @@ public:
     QSize sizeFromContents(ContentsType type, const QStyleOption* option, const QSize& size, const QWidget* widget) const override;
 
     void startExpandAnimation(ElaNavigationNode* node, bool isExpanded);
-    ElaNavigationMarkAnimation* selectionAnimation() const;
+    void setNavigationIndicator(ElaNavigationIndicator* indicator);
 
 private:
     ElaThemeType::ThemeMode _themeMode;
     ElaNavigationView* _navigationView{nullptr};
-    ElaNavigationMarkAnimation* _markAnimation{nullptr};
+    QPointer<ElaNavigationIndicator> _indicator;
     int _leftPadding{11};
     int _iconAreaWidth{40};
     int _textRightSpacing{3};

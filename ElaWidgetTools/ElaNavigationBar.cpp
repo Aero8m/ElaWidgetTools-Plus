@@ -7,6 +7,7 @@
 #include "ElaIconButton.h"
 #include "ElaInteractiveCard.h"
 #include "ElaMenu.h"
+#include "ElaNavigationIndicator.h"
 #include "ElaNavigationModel.h"
 #include "ElaNavigationNode.h"
 #include "ElaNavigationView.h"
@@ -18,6 +19,7 @@
 #include <QEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QScrollBar>
 #include <QScroller>
 #include <QVBoxLayout>
 #include <QtMath>
@@ -95,6 +97,17 @@ ElaNavigationBar::ElaNavigationBar(QWidget* parent)
     mainLayout->addWidget(d->_navigationView);
     mainLayout->addWidget(d->_footerView);
     d->_updateDisplayLayout();
+
+    d->_navigationIndicator = new ElaNavigationIndicator(this);
+    d->_navigationIndicator->setGeometry(rect());
+    d->_navigationView->setNavigationIndicator(d->_navigationIndicator);
+    d->_footerDelegate->setNavigationIndicator(d->_navigationIndicator);
+    connect(d->_navigationIndicator, &ElaNavigationIndicator::animationFinished, this, [d]() {
+        d->_navigationView->viewport()->update();
+        d->_footerView->viewport()->update();
+    });
+    connect(d->_navigationView->verticalScrollBar(), &QScrollBar::valueChanged, d->_navigationIndicator, &ElaNavigationIndicator::stopAnimation);
+    connect(d->_footerView->verticalScrollBar(), &QScrollBar::valueChanged, d->_navigationIndicator, &ElaNavigationIndicator::stopAnimation);
 
     // 合并同一轮中的节点更新，避免批量添加页面时反复调整布局。
     for (QAbstractItemModel* model: {static_cast<QAbstractItemModel*>(d->_navigationModel), static_cast<QAbstractItemModel*>(d->_footerModel)})

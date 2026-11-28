@@ -55,7 +55,6 @@ ElaWindow::ElaWindow(QWidget* parent)
     // 导航栏
     d->_navigationBar = new ElaNavigationBar(this);
     auto* navigation = d->_navigationBar->d_func();
-    navigation->_followPageTransitions = true;
     connect(d->_navigationBar, &ElaNavigationBar::pNavigationBarWidthChanged, this, &ElaWindow::pNavigationBarWidthChanged);
     d->_navigationBar->setUserInfoCardVisible(false);
     // 返回按钮状态变更
@@ -83,8 +82,6 @@ ElaWindow::ElaWindow(QWidget* parent)
 
     // 导航中心堆栈窗口
     d->_navigationCenterStackedWidget = new ElaCentralStackedWidget(this);
-    connect(d->_navigationCenterStackedWidget, &ElaCentralStackedWidget::pageTransitionProgressChanged,
-            navigation, &ElaNavigationBarPrivate::_updatePageTransition);
     d->_navigationCenterStackedWidget->setContentsMargins(0, 0, 0, 0);
     QWidget* navigationCentralWidget = new QWidget(this);
     navigationCentralWidget->setObjectName("ElaWindowNavigationCentralWidget");
